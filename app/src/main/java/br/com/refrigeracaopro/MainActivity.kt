@@ -1,0 +1,125 @@
+package br.com.refrigeracaopro
+
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import br.com.refrigeracaopro.ui.screens.AgendamentosScreen
+import br.com.refrigeracaopro.ui.screens.AssistenteIAScreen
+import br.com.refrigeracaopro.ui.screens.CalculosScreen
+import br.com.refrigeracaopro.ui.screens.ClienteFormScreen
+import br.com.refrigeracaopro.ui.screens.ClientesScreen
+import br.com.refrigeracaopro.ui.screens.ConfiguracoesScreen
+import br.com.refrigeracaopro.ui.screens.DashboardScreen
+import br.com.refrigeracaopro.ui.screens.EquipamentoFormScreen
+import br.com.refrigeracaopro.ui.screens.EquipamentosScreen
+import br.com.refrigeracaopro.ui.screens.GasesScreen
+import br.com.refrigeracaopro.ui.screens.LoginScreen
+import br.com.refrigeracaopro.ui.screens.OrdemServicoFormScreen
+import br.com.refrigeracaopro.ui.screens.OrdensServicoScreen
+import br.com.refrigeracaopro.ui.screens.RelatorioFormScreen
+import br.com.refrigeracaopro.ui.screens.RelatoriosScreen
+import br.com.refrigeracaopro.ui.screens.ServicosScreen
+import br.com.refrigeracaopro.ui.theme.RefrigeracaoProTheme
+
+/**
+ * Activity única: toda a navegação é feita com Navigation Compose.
+ */
+class MainActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Pede permissão de notificação (Android 13+) para os lembretes de manutenção
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+                .launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        setContent {
+            RefrigeracaoProTheme {
+                var logado by remember { mutableStateOf(false) }
+                val nav = rememberNavController()
+
+                if (!logado) {
+                    LoginScreen(aoEntrar = { logado = true })
+                } else {
+                    NavHost(navController = nav, startDestination = "dashboard") {
+                        composable("dashboard") { DashboardScreen(nav) }
+
+                        composable("clientes") { ClientesScreen(nav) }
+                        composable(
+                            "clientes/form?id={id}",
+                            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = 0L })
+                        ) { ClienteFormScreen(nav, it.arguments?.getLong("id") ?: 0L) }
+
+                        composable("equipamentos") { EquipamentosScreen(nav) }
+                        composable(
+                            "equipamentos/form?id={id}&clienteId={clienteId}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.LongType; defaultValue = 0L },
+                                navArgument("clienteId") { type = NavType.LongType; defaultValue = 0L },
+                            )
+                        ) {
+                            EquipamentoFormScreen(
+                                nav,
+                                it.arguments?.getLong("id") ?: 0L,
+                                it.arguments?.getLong("clienteId") ?: 0L
+                            )
+                        }
+
+                        composable("servicos") { ServicosScreen(nav) }
+
+                        composable("ordens") { OrdensServicoScreen(nav) }
+                        composable(
+                            "ordens/form?id={id}&agendamentoCliente={agendamentoCliente}&agendamentoEquip={agendamentoEquip}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.LongType; defaultValue = 0L },
+                                navArgument("agendamentoCliente") { type = NavType.LongType; defaultValue = 0L },
+                                navArgument("agendamentoEquip") { type = NavType.LongType; defaultValue = 0L },
+                            )
+                        ) {
+                            OrdemServicoFormScreen(
+                                nav,
+                                it.arguments?.getLong("id") ?: 0L,
+                                it.arguments?.getLong("agendamentoCliente") ?: 0L,
+                                it.arguments?.getLong("agendamentoEquip") ?: 0L,
+                            )
+                        }
+
+                        composable("relatorios") { RelatoriosScreen(nav) }
+                        composable(
+                            "relatorios/form?id={id}&osId={osId}",
+                            arguments = listOf(
+                                navArgument("id") { type = NavType.LongType; defaultValue = 0L },
+                                navArgument("osId") { type = NavType.LongType; defaultValue = 0L },
+                            )
+                        ) {
+                            RelatorioFormScreen(
+                                nav,
+                                it.arguments?.getLong("id") ?: 0L,
+                                it.arguments?.getLong("osId") ?: 0L,
+                            )
+                        }
+
+                        composable("agendamentos") { AgendamentosScreen(nav) }
+                        composable("gases") { GasesScreen(nav) }
+                        composable("calculos") { CalculosScreen(nav) }
+                        composable("assistente") { AssistenteIAScreen(nav) }
+                        composable("configuracoes") { ConfiguracoesScreen(nav) }
+                    }
+                }
+            }
+        }
+    }
+}

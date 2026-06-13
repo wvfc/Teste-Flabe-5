@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- PDFs gerados e fotos salvas no armazenamento interno do app -->
+    <files-path name="arquivos" path="." />
+    <cache-path name="cache" path="." />
+</paths>

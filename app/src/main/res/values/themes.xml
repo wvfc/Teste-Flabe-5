@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema base da Activity; o tema visual real é definido no Compose -->
+    <style name="Theme.RefrigeracaoPro" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#0D2C4F</item>
+    </style>
+</resources>
