@@ -14,9 +14,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [
         User::class, Cliente::class, Equipamento::class, Servico::class,
-        OrdemServico::class, Relatorio::class, Agendamento::class,
+        OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -27,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun ordemServicoDao(): OrdemServicoDao
     abstract fun relatorioDao(): RelatorioDao
     abstract fun agendamentoDao(): AgendamentoDao
+    abstract fun lancamentoDao(): LancamentoDao
 
     companion object {
         const val NOME_BANCO = "refrigeracao_pro.db"
@@ -43,13 +44,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 2→3: tabela de lançamentos financeiros (gestão). */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS lancamentos (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                        "tipo TEXT NOT NULL, descricao TEXT NOT NULL, categoria TEXT NOT NULL, " +
+                        "valor REAL NOT NULL, data INTEGER NOT NULL, formaPagamento TEXT NOT NULL, " +
+                        "ordemServicoId INTEGER)"
+                )
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     NOME_BANCO
-                ).addMigrations(MIGRATION_1_2).build().also { instancia = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instancia = it }
             }
 
         /** Fecha o banco (usado antes de backup/restauração). */

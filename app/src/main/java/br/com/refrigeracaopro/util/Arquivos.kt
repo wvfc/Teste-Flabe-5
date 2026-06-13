@@ -171,6 +171,36 @@ object Arquivos {
         }
     }
 
+    /** Nome de exibição de um conteúdo (uri), com fallback. */
+    fun nomeDoConteudo(context: Context, uri: Uri): String = runCatching {
+        var nome = "arquivo"
+        context.contentResolver.query(uri, null, null, null, null)?.use { c ->
+            val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && c.moveToFirst()) nome = c.getString(idx) ?: nome
+        }
+        nome
+    }.getOrDefault("arquivo")
+
+    /**
+     * Lê um arquivo escolhido para anexar ao Assistente IA. Se for texto legível,
+     * devolve o conteúdo (limitado); senão, devolve apenas uma nota com o nome,
+     * pois arquivos binários (ex.: PDF) não são lidos offline.
+     */
+    fun lerArquivoTexto(context: Context, uri: Uri): Pair<String, String> {
+        val nome = nomeDoConteudo(context, uri)
+        val extensoesTexto = listOf("txt", "csv", "log", "json", "xml", "md", "kt", "java", "ini", "cfg")
+        val ext = nome.substringAfterLast('.', "").lowercase()
+        if (ext in extensoesTexto) {
+            val conteudo = runCatching {
+                context.contentResolver.openInputStream(uri)!!.use { it.bufferedReader().readText() }
+            }.getOrNull()
+            if (!conteudo.isNullOrBlank()) {
+                return nome to conteudo.take(4000)
+            }
+        }
+        return nome to "[Arquivo \"$nome\" anexado — conteúdo binário não lido pelo app. Descreva o que deseja analisar.]"
+    }
+
     // ----- Conversão entre lista de caminhos e o campo texto do banco -----
     fun listaParaTexto(lista: List<String>): String = lista.joinToString("|")
     fun textoParaLista(texto: String): List<String> =

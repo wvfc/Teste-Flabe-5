@@ -184,3 +184,25 @@ object StatusAgendamento {
     const val CANCELADA = "Cancelada"
     val TODOS = listOf(AGENDADA, REALIZADA, CANCELADA)
 }
+
+/** Lançamento financeiro (gestão de receitas e despesas). */
+@Entity(tableName = "lancamentos")
+data class Lancamento(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val tipo: String = TipoLancamento.RECEITA, // Receita ou Despesa
+    val descricao: String,
+    val categoria: String = "",
+    val valor: Double = 0.0,
+    val data: Long = System.currentTimeMillis(),
+    val formaPagamento: String = "",
+    val ordemServicoId: Long? = null, // quando gerado a partir de uma OS concluída
+)
+
+object TipoLancamento {
+    const val RECEITA = "Receita"
+    const val DESPESA = "Despesa"
+    val TODOS = listOf(RECEITA, DESPESA)
+
+    val CATEGORIAS_RECEITA = listOf("Serviço", "Venda de peça", "Contrato", "Outros")
+    val CATEGORIAS_DESPESA = listOf("Peças/Materiais", "Combustível", "Ferramentas", "Impostos", "Salários", "Outros")
+}

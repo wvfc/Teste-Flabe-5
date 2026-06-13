@@ -121,6 +121,24 @@ interface RelatorioDao {
 }
 
 @Dao
+interface LancamentoDao {
+    @Query("SELECT * FROM lancamentos ORDER BY data DESC")
+    fun listar(): Flow<List<Lancamento>>
+
+    @Query("SELECT * FROM lancamentos WHERE data BETWEEN :inicio AND :fim ORDER BY data DESC")
+    fun listarPeriodo(inicio: Long, fim: Long): Flow<List<Lancamento>>
+
+    @Query("SELECT COUNT(*) FROM lancamentos WHERE ordemServicoId = :osId")
+    suspend fun contarPorOS(osId: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun salvar(lancamento: Lancamento): Long
+
+    @Delete
+    suspend fun excluir(lancamento: Lancamento)
+}
+
+@Dao
 interface AgendamentoDao {
     @Query("SELECT * FROM agendamentos ORDER BY dataHora")
     fun listar(): Flow<List<Agendamento>>

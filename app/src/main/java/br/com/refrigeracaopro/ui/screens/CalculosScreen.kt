@@ -67,9 +67,10 @@ private fun AbaSuperaquecimento() {
 
     val resultado = remember(fluido, pressao, tempSuccao) {
         val f = PTTable.porNome(fluido) ?: return@remember null
-        val p = pressao.replace(",", ".").toDoubleOrNull() ?: return@remember null
+        val psi = pressao.replace(",", ".").toDoubleOrNull() ?: return@remember null
         val t = tempSuccao.replace(",", ".").toDoubleOrNull() ?: return@remember null
-        PTTable.superaquecimento(f, p, t)
+        // Pressão informada em psi (manométrico) → bar para o cálculo
+        PTTable.superaquecimento(f, PTTable.psiParaBar(psi), t)
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
@@ -77,7 +78,7 @@ private fun AbaSuperaquecimento() {
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         SeletorOpcoes("Fluido refrigerante", PTTable.NOMES, fluido, { fluido = it })
-        CampoTexto(pressao, { pressao = it }, "Pressão de sucção (bar manométrico)",
+        CampoTexto(pressao, { pressao = it }, "Pressão de sucção (psi manométrico)",
             teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
         CampoTexto(tempSuccao, { tempSuccao = it }, "Temperatura na linha de sucção (°C)",
             teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
@@ -94,9 +95,10 @@ private fun AbaSubresfriamento() {
 
     val resultado = remember(fluido, pressao, tempLiquido) {
         val f = PTTable.porNome(fluido) ?: return@remember null
-        val p = pressao.replace(",", ".").toDoubleOrNull() ?: return@remember null
+        val psi = pressao.replace(",", ".").toDoubleOrNull() ?: return@remember null
         val t = tempLiquido.replace(",", ".").toDoubleOrNull() ?: return@remember null
-        PTTable.subresfriamento(f, p, t)
+        // Pressão informada em psi (manométrico) → bar para o cálculo
+        PTTable.subresfriamento(f, PTTable.psiParaBar(psi), t)
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
@@ -104,7 +106,7 @@ private fun AbaSubresfriamento() {
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
         SeletorOpcoes("Fluido refrigerante", PTTable.NOMES, fluido, { fluido = it })
-        CampoTexto(pressao, { pressao = it }, "Pressão de descarga/líquido (bar manométrico)",
+        CampoTexto(pressao, { pressao = it }, "Pressão de descarga/líquido (psi manométrico)",
             teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
         CampoTexto(tempLiquido, { tempLiquido = it }, "Temperatura na linha de líquido (°C)",
             teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
@@ -184,13 +186,14 @@ private fun AbaCapacitor() {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Capacitor permanente: ≈ ${r.capacitorPermanenteUf} µF",
+                    Text("Referência para ${r.faixaHpReferencia} HP (≈ %.2f HP)".format(r.potenciaHp),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(4.dp))
+                    Text("Capacitor permanente: ${r.permanenteMinUf}–${r.permanenteMaxUf} µF",
                         style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Verde)
-                    Text("Capacitor de partida: ≈ ${r.capacitorPartidaMinUf}–${r.capacitorPartidaMaxUf} µF",
+                    Text("Capacitor de partida: ${r.partidaMinUf}–${r.partidaMaxUf} µF",
                         style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Text("Tensão mínima do capacitor: ${r.tensaoMinimaCapacitor} VAC")
-                    Text("Corrente considerada: %.1f A".format(r.correnteEstimada),
-                        style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.height(8.dp))
                     r.observacoes.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
                 }

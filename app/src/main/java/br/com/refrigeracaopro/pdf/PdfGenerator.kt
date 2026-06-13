@@ -360,8 +360,8 @@ object PdfGenerator {
         b.tabela(
             listOf(
                 "Fluido refrigerante" to rel.fluido,
-                "Pressão de sucção" to rel.pressaoSuccao.comUnidade("bar"),
-                "Pressão de descarga" to rel.pressaoDescarga.comUnidade("bar"),
+                "Pressão de sucção" to rel.pressaoSuccao.comUnidade("psi"),
+                "Pressão de descarga" to rel.pressaoDescarga.comUnidade("psi"),
                 "Temperatura linha de sucção" to rel.tempLinhaSuccao.comUnidade("°C"),
                 "Temperatura linha de líquido" to rel.tempLinhaLiquido.comUnidade("°C"),
                 "Temperatura ambiente" to rel.tempAmbiente.comUnidade("°C"),

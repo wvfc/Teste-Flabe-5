@@ -3,6 +3,7 @@ package br.com.refrigeracaopro.ia
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.util.Base64
 import br.com.refrigeracaopro.data.Prefs.chaveOpenAi
 import br.com.refrigeracaopro.data.Prefs.iaAtiva
 import br.com.refrigeracaopro.data.Prefs.modeloIa
@@ -14,6 +15,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
@@ -62,11 +64,14 @@ object OpenAiClient {
      * @param instrucoesExtra texto adicional de sistema (ex.: base técnica local
      *   + formato de diagnóstico). Quando presente, a IA passa a fundamentar a
      *   resposta na base interna em vez de responder genericamente.
+     * @param imagens caminhos de imagens locais anexadas à ÚLTIMA mensagem do
+     *   usuário (visão). Requer modelo com suporte a imagens (gpt-4o, etc.).
      */
     suspend fun perguntar(
         context: Context,
         mensagens: List<Pair<String, String>>,
         instrucoesExtra: String? = null,
+        imagens: List<String> = emptyList(),
     ): Resultado =
         withContext(Dispatchers.IO) {
             val chave = context.chaveOpenAi
@@ -76,15 +81,35 @@ object OpenAiClient {
             if (!context.iaAtiva) return@withContext Resultado.Erro("Assistente IA desativado nas configurações.")
             if (!temInternet(context)) return@withContext Resultado.Erro("Sem conexão com a internet.")
 
+            // Índice da última mensagem do usuário (onde anexamos as imagens)
+            val idxUltimoUser = mensagens.indexOfLast { it.first == "user" }
+
             val corpo = JSONObject().apply {
                 put("model", context.modeloIa)
                 put("messages", JSONArray().apply {
                     put(JSONObject().put("role", "system").put("content", PROMPT_SISTEMA))
+                    put(JSONObject().put("role", "system").put("content",
+                        "Responda em TEXTO PURO, sem Markdown. Não use asteriscos (*) nem ** para " +
+                            "negrito/itálico, nem # para títulos. Use listas com '-' ou '•' quando necessário."))
                     if (!instrucoesExtra.isNullOrBlank()) {
                         put(JSONObject().put("role", "system").put("content", instrucoesExtra))
                     }
-                    mensagens.forEach { (papel, conteudo) ->
-                        put(JSONObject().put("role", papel).put("content", conteudo))
+                    mensagens.forEachIndexed { i, (papel, conteudo) ->
+                        if (i == idxUltimoUser && imagens.isNotEmpty()) {
+                            // Conteúdo multimodal: texto + imagens em base64
+                            val arr = JSONArray()
+                            arr.put(JSONObject().put("type", "text").put("text", conteudo))
+                            imagens.forEach { caminho ->
+                                imagemBase64(caminho)?.let { dataUrl ->
+                                    arr.put(JSONObject().put("type", "image_url").put(
+                                        "image_url", JSONObject().put("url", dataUrl)
+                                    ))
+                                }
+                            }
+                            put(JSONObject().put("role", papel).put("content", arr))
+                        } else {
+                            put(JSONObject().put("role", papel).put("content", conteudo))
+                        }
                     }
                 })
                 put("temperature", 0.3)
@@ -108,12 +133,34 @@ object OpenAiClient {
                     val conteudo = JSONObject(texto)
                         .getJSONArray("choices").getJSONObject(0)
                         .getJSONObject("message").getString("content")
-                    Resultado.Sucesso(conteudo.trim())
+                    Resultado.Sucesso(limparMarkdown(conteudo))
                 }
             } catch (e: Exception) {
                 Resultado.Erro("Falha de conexão: ${e.message}")
             }
         }
+
+    /** Lê uma imagem do disco e devolve uma data URL base64 para a API de visão. */
+    private fun imagemBase64(caminho: String): String? = runCatching {
+        val bytes = File(caminho).readBytes()
+        "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+    }.getOrNull()
+
+    /**
+     * Remove marcações Markdown das respostas (o usuário não quer ver "**" no
+     * texto). Mantém o conteúdo legível em texto puro.
+     */
+    fun limparMarkdown(texto: String): String {
+        var t = texto.trim()
+        t = t.replace("**", "")
+        t = t.replace("__", "")
+        t = Regex("(?m)^\\s{0,3}#{1,6}\\s*").replace(t, "")      // títulos #, ##, ...
+        t = Regex("(?m)^(\\s*)[*+]\\s+").replace(t) { m -> m.groupValues[1] + "• " } // bullets *,+
+        t = Regex("(?m)^(\\s*)-\\s+").replace(t) { m -> m.groupValues[1] + "• " }     // bullets -
+        t = Regex("(?<![*\\w])\\*(?!\\s)([^*\\n]+?)\\*(?![*\\w])").replace(t) { it.groupValues[1] } // *itálico*
+        t = t.replace("`", "")
+        return t.trim()
+    }
 
     /** Teste rápido de conexão/chave. */
     suspend fun testarConexao(context: Context): Resultado =

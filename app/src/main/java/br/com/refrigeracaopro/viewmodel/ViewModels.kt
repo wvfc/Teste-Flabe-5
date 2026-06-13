@@ -16,6 +16,7 @@ import br.com.refrigeracaopro.util.Seguranca
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -242,6 +243,51 @@ class RelatoriosViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun buscarCliente(id: Long): Cliente? = db().clienteDao().buscar(id)
     suspend fun buscarEquipamento(id: Long): Equipamento? = db().equipamentoDao().buscar(id)
     suspend fun buscarOS(id: Long): OrdemServico? = db().ordemServicoDao().buscar(id)
+}
+
+// ---------- Gestão financeira ----------
+class GestaoViewModel(app: Application) : AndroidViewModel(app) {
+    private val dao = db().lancamentoDao()
+
+    val lancamentos: StateFlow<List<br.com.refrigeracaopro.data.Lancamento>> =
+        dao.listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun salvar(lancamento: br.com.refrigeracaopro.data.Lancamento) {
+        viewModelScope.launch { dao.salvar(lancamento) }
+    }
+
+    fun excluir(lancamento: br.com.refrigeracaopro.data.Lancamento) {
+        viewModelScope.launch { dao.excluir(lancamento) }
+    }
+
+    /**
+     * Importa como Receita as OS concluídas que ainda não possuem lançamento,
+     * usando o valor total da OS. Evita duplicar pelo ordemServicoId.
+     */
+    fun importarReceitasDeOS(aoConcluir: (Int) -> Unit) {
+        viewModelScope.launch {
+            // Snapshot único da lista de OS
+            val ordens = db().ordemServicoDao().listar().first()
+            var criados = 0
+            ordens.filter { it.status == br.com.refrigeracaopro.data.StatusOS.CONCLUIDA && it.valorTotal > 0 }
+                .forEach { os ->
+                    if (dao.contarPorOS(os.id) == 0) {
+                        dao.salvar(
+                            br.com.refrigeracaopro.data.Lancamento(
+                                tipo = br.com.refrigeracaopro.data.TipoLancamento.RECEITA,
+                                descricao = "OS ${os.numero}",
+                                categoria = "Serviço",
+                                valor = os.valorTotal,
+                                data = os.dataHora,
+                                ordemServicoId = os.id,
+                            )
+                        )
+                        criados++
+                    }
+                }
+            aoConcluir(criados)
+        }
+    }
 }
 
 // ---------- Agendamentos ----------

@@ -23,9 +23,11 @@ import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -61,6 +63,8 @@ fun DashboardScreen(nav: NavController) {
         Modulo("Cálculos", Icons.Default.Calculate, "calculos"),
         Modulo("Motores/Compressores", Icons.Default.Memory, "compressores"),
         Modulo("Comparar Componentes", Icons.AutoMirrored.Filled.CompareArrows, "comparacao"),
+        Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
+        Modulo("Gestão Financeira", Icons.Default.MonetizationOn, "gestao"),
         Modulo("Buscar Manual", Icons.AutoMirrored.Filled.MenuBook, "manuais"),
         Modulo("Assistente IA", Icons.Default.SmartToy, "assistente"),
         Modulo("Configurações", Icons.Default.Settings, "configuracoes"),

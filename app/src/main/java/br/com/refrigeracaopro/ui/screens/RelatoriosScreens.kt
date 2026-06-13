@@ -200,19 +200,19 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
         }
     }
 
-    // Recalcula superaquecimento/subresfriamento automaticamente
+    // Recalcula superaquecimento/subresfriamento automaticamente (pressões em psi)
     fun recalcular() {
         val f = PTTable.porNome(fluido) ?: return
-        pSuccao.replace(",", ".").toDoubleOrNull()?.let { p ->
+        pSuccao.replace(",", ".").toDoubleOrNull()?.let { psi ->
             tSuccao.replace(",", ".").toDoubleOrNull()?.let { t ->
-                val r = PTTable.superaquecimento(f, p, t)
+                val r = PTTable.superaquecimento(f, PTTable.psiParaBar(psi), t)
                 superaq = "%.1f".format(r.valor)
                 tEvap = "%.1f".format(r.tempSaturacao)
             }
         }
-        pDescarga.replace(",", ".").toDoubleOrNull()?.let { p ->
+        pDescarga.replace(",", ".").toDoubleOrNull()?.let { psi ->
             tLiquido.replace(",", ".").toDoubleOrNull()?.let { t ->
-                val r = PTTable.subresfriamento(f, p, t)
+                val r = PTTable.subresfriamento(f, PTTable.psiParaBar(psi), t)
                 subresf = "%.1f".format(r.valor)
                 tCond = "%.1f".format(r.tempSaturacao)
             }
@@ -315,10 +315,10 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
                         TituloSecao("Fluido e pressões")
                         SeletorOpcoes("Fluido refrigerante", PTTable.NOMES, fluido, { fluido = it; recalcular() })
                         Row {
-                            CampoTexto(pSuccao, { pSuccao = it; recalcular() }, "Pressão sucção (bar)",
+                            CampoTexto(pSuccao, { pSuccao = it; recalcular() }, "Pressão sucção (psi)",
                                 modifier = Modifier.weight(1f).padding(end = 4.dp),
                                 teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-                            CampoTexto(pDescarga, { pDescarga = it; recalcular() }, "Pressão descarga (bar)",
+                            CampoTexto(pDescarga, { pDescarga = it; recalcular() }, "Pressão descarga (psi)",
                                 modifier = Modifier.weight(1f).padding(start = 4.dp),
                                 teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
                         }

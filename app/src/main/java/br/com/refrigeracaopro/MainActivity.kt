@@ -22,7 +22,9 @@ import br.com.refrigeracaopro.ui.screens.ClientesScreen
 import br.com.refrigeracaopro.ui.screens.ComparacaoScreen
 import br.com.refrigeracaopro.ui.screens.CompressoresScreen
 import br.com.refrigeracaopro.ui.screens.ConfiguracoesScreen
+import br.com.refrigeracaopro.ui.screens.ConversorScreen
 import br.com.refrigeracaopro.ui.screens.DashboardScreen
+import br.com.refrigeracaopro.ui.screens.GestaoScreen
 import br.com.refrigeracaopro.ui.screens.ManuaisScreen
 import br.com.refrigeracaopro.ui.screens.EquipamentoFormScreen
 import br.com.refrigeracaopro.ui.screens.EquipamentosScreen
@@ -121,6 +123,8 @@ class MainActivity : ComponentActivity() {
                         composable("compressores") { CompressoresScreen(nav) }
                         composable("comparacao") { ComparacaoScreen(nav) }
                         composable("manuais") { ManuaisScreen(nav) }
+                        composable("gestao") { GestaoScreen(nav) }
+                        composable("conversor") { ConversorScreen(nav) }
                         composable("assistente") { AssistenteIAScreen(nav) }
                         composable("configuracoes") { ConfiguracoesScreen(nav) }
                     }

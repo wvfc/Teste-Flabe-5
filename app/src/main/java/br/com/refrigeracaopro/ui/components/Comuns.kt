@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -152,7 +153,10 @@ fun SecaoFotos(
     aoMudar: (List<String>) -> Unit,
 ) {
     val context = LocalContext.current
-    var uriCamera by remember { mutableStateOf<Pair<Uri, String>?>(null) }
+    // O caminho pendente da foto é salvo com rememberSaveable: a Activity pode
+    // ser recriada enquanto o app de câmera está em primeiro plano, e sem isso o
+    // estado se perderia e a foto não seria salva (causa real do bug).
+    var caminhoPendente by rememberSaveable { mutableStateOf<String?>(null) }
 
     val galeria = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         // Fotos da galeria: copiadas e comprimidas para o armazenamento interno
@@ -160,17 +164,19 @@ fun SecaoFotos(
         if (novas.isNotEmpty()) aoMudar(fotos + novas)
     }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        uriCamera?.let { (_, caminho) ->
-            if (ok) {
+        val caminho = caminhoPendente
+        if (caminho != null) {
+            val arquivo = File(caminho)
+            if (ok && arquivo.exists() && arquivo.length() > 0) {
                 // Comprime a foto recém-capturada antes de vincular ao registro
                 Arquivos.comprimirNoLocal(context, caminho)
                 aoMudar(fotos + caminho)
             } else {
                 // Usuário cancelou ou a captura falhou: remove o arquivo vazio
-                File(caminho).delete()
+                arquivo.delete()
             }
         }
-        uriCamera = null
+        caminhoPendente = null
     }
 
     // Dispara a câmera com URI segura via FileProvider; trata ausência de app/erros
@@ -179,12 +185,12 @@ fun SecaoFotos(
             Toast.makeText(context, "Nenhum app de câmera disponível.", Toast.LENGTH_SHORT).show()
             return
         }
-        val par = Arquivos.uriParaCamera(context)
-        uriCamera = par
-        runCatching { camera.launch(par.first) }.onFailure {
+        val (uri, caminho) = Arquivos.uriParaCamera(context)
+        caminhoPendente = caminho
+        runCatching { camera.launch(uri) }.onFailure {
             Toast.makeText(context, "Não foi possível abrir a câmera.", Toast.LENGTH_SHORT).show()
-            File(par.second).delete()
-            uriCamera = null
+            File(caminho).delete()
+            caminhoPendente = null
         }
     }
 

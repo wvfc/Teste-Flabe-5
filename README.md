@@ -31,6 +31,15 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 | **Assistente IA** | Chat técnico e geração de conclusão/diagnóstico, fundamentado na **base técnica interna (JSON offline)**, com formato estruturado (diagnóstico, causas, testes, riscos, correção, segurança, grau de confiança). |
 | **Configurações** | Dados da empresa/técnico, logo, chave OpenAI (criptografada), modelo de IA, teste de conexão e **backup/restauração**. |
 
+| **Gestão Financeira** | Receitas e despesas por mês, com saldo, categorias, e **importação automática de receita das OS concluídas**. |
+| **Conversor de Unidades** | Conversão entre temperatura, pressão, comprimento, massa, volume, área, velocidade, potência, energia, vazão, tempo, torque e ângulo. |
+
+### Pressões em psi
+Todas as pressões do app (cálculos de superaquecimento/subresfriamento, campos do relatório, PDF e tabela de gases) são tratadas em **psi**.
+
+### Assistente IA
+Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e **arquivos** (texto embutido no contexto). As respostas vêm em **texto puro** (sem marcações Markdown como `**`) e no formato estruturado de diagnóstico.
+
 ### Câmera e fotos
 A captura por câmera usa `ActivityResultContracts.TakePicture` com **URI segura via FileProvider** (sem caminho absoluto direto), valida a existência de app de câmera, trata cancelamento/erro sem travar, corrige a rotação (EXIF) e **comprime** a imagem antes de salvar/exportar. Fotos da galeria continuam funcionando e também são comprimidas. Permissões tratadas para Android 10 a 13+.
 
