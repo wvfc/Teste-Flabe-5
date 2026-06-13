@@ -66,6 +66,7 @@ data class Equipamento(
     val dataInstalacao: String = "",
     val observacoes: String = "",
     val fotos: String = "", // caminhos separados por "|"
+    val manuais: String = "", // manuais técnicos anexados (caminhos/URLs separados por "|")
 )
 
 /** Serviço de catálogo (ex.: troca de compressor, carga de gás). */
@@ -127,6 +128,8 @@ data class Relatorio(
     val ordemServicoId: Long? = null, // quando gerado a partir de uma OS
     val motivoVisita: String = "",
     val diagnostico: String = "",
+    val diagnosticoIA: String = "", // sugestão de diagnóstico gerada pela IA
+    val manualAnexado: String = "", // manual técnico vinculado ao relatório
     // Medições elétricas
     val correnteEletrica: String = "",
     val tensaoEletrica: String = "",

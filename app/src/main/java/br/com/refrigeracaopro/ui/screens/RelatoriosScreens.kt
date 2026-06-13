@@ -1,6 +1,9 @@
 package br.com.refrigeracaopro.ui.screens
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Delete
@@ -27,6 +31,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,12 +50,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import br.com.refrigeracaopro.data.Avisos
 import br.com.refrigeracaopro.data.PTTable
 import br.com.refrigeracaopro.data.Relatorio
+import br.com.refrigeracaopro.ia.BaseTecnica
 import br.com.refrigeracaopro.ia.IAContexto
 import br.com.refrigeracaopro.ia.OpenAiClient
 import br.com.refrigeracaopro.pdf.PdfGenerator
 import br.com.refrigeracaopro.ui.components.AssinaturaDialog
+import br.com.refrigeracaopro.ui.components.AvisoListaCard
 import br.com.refrigeracaopro.ui.components.CampoTexto
 import br.com.refrigeracaopro.ui.components.ConfirmarExclusao
 import br.com.refrigeracaopro.ui.components.LinhaAssinatura
@@ -60,6 +69,7 @@ import br.com.refrigeracaopro.ui.components.TituloSecao
 import br.com.refrigeracaopro.util.Arquivos
 import br.com.refrigeracaopro.viewmodel.RelatoriosViewModel
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -148,6 +158,10 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
     var assinarTecnico by remember { mutableStateOf(false) }
     var assinarCliente by remember { mutableStateOf(false) }
     var carregandoIA by remember { mutableStateOf(false) }
+    var diagnosticoIA by remember { mutableStateOf("") }
+    var manualAnexado by remember { mutableStateOf("") }
+    var carregandoDiag by remember { mutableStateOf(false) }
+    var aba by remember { mutableStateOf(0) }
 
     LaunchedEffect(relatorioId, osId) {
         if (relatorioId > 0) {
@@ -164,6 +178,7 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
                 superaq = r.superaquecimento; subresf = r.subresfriamento
                 servicos = r.servicosRealizados; pecas = r.pecasSubstituidas
                 recomendacoes = r.recomendacoes; conclusao = r.conclusao
+                diagnosticoIA = r.diagnosticoIA; manualAnexado = r.manualAnexado
                 fotosAntes = Arquivos.textoParaLista(r.fotosAntes)
                 fotosDurante = Arquivos.textoParaLista(r.fotosDurante)
                 fotosDepois = Arquivos.textoParaLista(r.fotosDepois)
@@ -211,6 +226,7 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
         tempAmbiente = tAmbiente, tempInterna = tInterna, fluido = fluido, tempEvaporacao = tEvap, tempCondensacao = tCond,
         superaquecimento = superaq, subresfriamento = subresf, servicosRealizados = servicos, pecasSubstituidas = pecas,
         recomendacoes = recomendacoes, conclusao = conclusao,
+        diagnosticoIA = diagnosticoIA, manualAnexado = manualAnexado,
         fotosAntes = Arquivos.listaParaTexto(fotosAntes), fotosDurante = Arquivos.listaParaTexto(fotosDurante),
         fotosDepois = Arquivos.listaParaTexto(fotosDepois),
         assinaturaTecnico = assinaturaTecnico, assinaturaCliente = assinaturaCliente,
@@ -218,176 +234,264 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
 
     val equipsDoCliente = equipamentos.filter { it.clienteId == clienteId }
 
+    // Anexa um manual técnico (PDF) ao relatório
+    val anexarManual = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) Arquivos.copiarParaManuais(context, uri, numero)?.let { manualAnexado = it }
+    }
+
+    // Gera a sugestão de diagnóstico da IA com base nas medições + base técnica
+    fun gerarDiagnosticoIA() {
+        if (!OpenAiClient.disponivel(context)) {
+            Toast.makeText(context, "Configure a chave OpenAI e conecte-se à internet.", Toast.LENGTH_LONG).show()
+            return
+        }
+        carregandoDiag = true
+        escopo.launch {
+            val ctx = IAContexto.deRelatorio(montar(), equipsDoCliente.find { it.id == equipamentoId })
+            val instrucoes = "BASE TÉCNICA (consulte antes de responder):\n" +
+                BaseTecnica.resumoPara(context, "$diagnostico $motivo $fluido diagnóstico") +
+                "\n\n" + BaseTecnica.FORMATO_DIAGNOSTICO
+            val r = OpenAiClient.perguntar(
+                context,
+                listOf("user" to "Analise o caso e gere o DIAGNÓSTICO no formato pedido:\n\n$ctx"),
+                instrucoes,
+            )
+            when (r) {
+                is OpenAiClient.Resultado.Sucesso -> diagnosticoIA = r.texto
+                is OpenAiClient.Resultado.Erro -> Toast.makeText(context, r.mensagem, Toast.LENGTH_LONG).show()
+            }
+            carregandoDiag = false
+        }
+    }
+
+    val abas = listOf("Medições", "Diagnóstico IA", "Fotos", "Peças/Serviços", "Recomendações", "Manual", "Conclusão", "Assinaturas")
+
     TelaBase(nav, if (relatorioId > 0) numero else "Novo relatório") { padding ->
-        Column(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState())
-        ) {
-            Text(numero, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.secondary)
-
-            TituloSecao("Dados do cliente e equipamento")
-            SeletorOpcoes(
-                "Cliente *", clientes.map { it.nome },
-                clientes.find { it.id == clienteId }?.nome ?: "",
-                aoSelecionar = { nome -> clienteId = clientes.find { it.nome == nome }?.id ?: 0L; equipamentoId = null }
-            )
-            SeletorOpcoes(
-                "Equipamento", equipsDoCliente.map { "${it.tipo} ${it.marca}".trim() },
-                equipsDoCliente.find { it.id == equipamentoId }?.let { "${it.tipo} ${it.marca}".trim() } ?: "",
-                aoSelecionar = { texto ->
-                    val e = equipsDoCliente.find { e -> "${e.tipo} ${e.marca}".trim() == texto }
-                    equipamentoId = e?.id
-                    if (e != null && e.fluido.isNotBlank()) fluido = e.fluido
-                }
-            )
-
-            TituloSecao("Motivo e diagnóstico")
-            CampoTexto(motivo, { motivo = it }, "Motivo da visita", linhas = 2)
-            CampoTexto(diagnostico, { diagnostico = it }, "Diagnóstico", linhas = 3)
-
-            TituloSecao("Medições elétricas")
-            Row {
-                CampoTexto(corrente, { corrente = it }, "Corrente (A)", modifier = Modifier.weight(1f).padding(end = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-                CampoTexto(tensao, { tensao = it }, "Tensão (V)", modifier = Modifier.weight(1f).padding(start = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-            }
-
-            TituloSecao("Fluido e pressões")
-            SeletorOpcoes("Fluido refrigerante", PTTable.NOMES, fluido, { fluido = it; recalcular() })
-            Row {
-                CampoTexto(pSuccao, { pSuccao = it; recalcular() }, "Pressão sucção (bar)",
-                    modifier = Modifier.weight(1f).padding(end = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-                CampoTexto(pDescarga, { pDescarga = it; recalcular() }, "Pressão descarga (bar)",
-                    modifier = Modifier.weight(1f).padding(start = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-            }
-
-            TituloSecao("Temperaturas")
-            Row {
-                CampoTexto(tSuccao, { tSuccao = it; recalcular() }, "Linha sucção (°C)",
-                    modifier = Modifier.weight(1f).padding(end = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-                CampoTexto(tLiquido, { tLiquido = it; recalcular() }, "Linha líquido (°C)",
-                    modifier = Modifier.weight(1f).padding(start = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-            }
-            Row {
-                CampoTexto(tAmbiente, { tAmbiente = it }, "Ambiente (°C)", modifier = Modifier.weight(1f).padding(end = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-                CampoTexto(tInterna, { tInterna = it }, "Interna (°C)", modifier = Modifier.weight(1f).padding(start = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-            }
-            Row {
-                CampoTexto(tEvap, { tEvap = it }, "T. evaporação (°C)", modifier = Modifier.weight(1f).padding(end = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-                CampoTexto(tCond, { tCond = it }, "T. condensação (°C)", modifier = Modifier.weight(1f).padding(start = 4.dp),
-                    teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
-            }
-
-            // Resultados calculados em destaque
-            Card(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Calculate, null, tint = MaterialTheme.colorScheme.secondary)
-                    Spacer(Modifier.width(8.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Superaquecimento: ${superaq.ifBlank { "—" }} K",
-                            fontWeight = FontWeight.SemiBold)
-                        Text("Subresfriamento: ${subresf.ifBlank { "—" }} K",
-                            fontWeight = FontWeight.SemiBold)
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // ---- Cabeçalho fixo: número + cliente + equipamento ----
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(numero, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary)
+                SeletorOpcoes(
+                    "Cliente *", clientes.map { it.nome },
+                    clientes.find { it.id == clienteId }?.nome ?: "",
+                    aoSelecionar = { nome -> clienteId = clientes.find { it.nome == nome }?.id ?: 0L; equipamentoId = null }
+                )
+                SeletorOpcoes(
+                    "Equipamento", equipsDoCliente.map { "${it.tipo} ${it.marca}".trim() },
+                    equipsDoCliente.find { it.id == equipamentoId }?.let { "${it.tipo} ${it.marca}".trim() } ?: "",
+                    aoSelecionar = { texto ->
+                        val e = equipsDoCliente.find { e -> "${e.tipo} ${e.marca}".trim() == texto }
+                        equipamentoId = e?.id
+                        if (e != null && e.fluido.isNotBlank()) fluido = e.fluido
                     }
+                )
+            }
+
+            ScrollableTabRow(selectedTabIndex = aba, edgePadding = 0.dp) {
+                abas.forEachIndexed { i, titulo ->
+                    Tab(selected = aba == i, onClick = { aba = i }, text = { Text(titulo) })
                 }
             }
 
-            TituloSecao("Serviços e recomendações")
-            CampoTexto(servicos, { servicos = it }, "Serviços realizados", linhas = 2)
-            CampoTexto(pecas, { pecas = it }, "Peças substituídas", linhas = 2)
-            CampoTexto(recomendacoes, { recomendacoes = it }, "Recomendações técnicas", linhas = 2)
-
-            TituloSecao("Fotos")
-            SecaoFotos("Antes", fotosAntes) { fotosAntes = it }
-            SecaoFotos("Durante", fotosDurante) { fotosDurante = it }
-            SecaoFotos("Depois", fotosDepois) { fotosDepois = it }
-
-            TituloSecao("Conclusão")
-            CampoTexto(conclusao, { conclusao = it }, "Conclusão técnica", linhas = 3)
-            // Botão de IA para gerar conclusão automática a partir das medições
-            OutlinedButton(
-                onClick = {
-                    if (!OpenAiClient.disponivel(context)) {
-                        Toast.makeText(context, "Configure a chave OpenAI e conecte-se à internet.", Toast.LENGTH_LONG).show()
-                        return@OutlinedButton
-                    }
-                    carregandoIA = true
-                    escopo.launch {
-                        val ctx = IAContexto.deRelatorio(montar(), equipsDoCliente.find { it.id == equipamentoId })
-                        val r = OpenAiClient.perguntar(context, listOf(
-                            "user" to "Com base nos dados técnicos a seguir, gere uma CONCLUSÃO TÉCNICA " +
-                                "objetiva e profissional para o relatório (máx. 6 linhas):\n\n$ctx"
-                        ))
-                        when (r) {
-                            is OpenAiClient.Resultado.Sucesso -> conclusao = r.texto
-                            is OpenAiClient.Resultado.Erro -> Toast.makeText(context, r.mensagem, Toast.LENGTH_LONG).show()
-                        }
-                        carregandoIA = false
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
+            // ---- Conteúdo da aba selecionada (rolável) ----
+            Column(
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)
             ) {
-                Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(if (carregandoIA) "Gerando..." else "Gerar conclusão com IA")
+                when (aba) {
+                    0 -> {
+                        TituloSecao("Motivo e diagnóstico")
+                        CampoTexto(motivo, { motivo = it }, "Motivo da visita", linhas = 2)
+                        CampoTexto(diagnostico, { diagnostico = it }, "Diagnóstico", linhas = 3)
+
+                        TituloSecao("Medições elétricas")
+                        Row {
+                            CampoTexto(corrente, { corrente = it }, "Corrente (A)", modifier = Modifier.weight(1f).padding(end = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            CampoTexto(tensao, { tensao = it }, "Tensão (V)", modifier = Modifier.weight(1f).padding(start = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                        }
+
+                        TituloSecao("Fluido e pressões")
+                        SeletorOpcoes("Fluido refrigerante", PTTable.NOMES, fluido, { fluido = it; recalcular() })
+                        Row {
+                            CampoTexto(pSuccao, { pSuccao = it; recalcular() }, "Pressão sucção (bar)",
+                                modifier = Modifier.weight(1f).padding(end = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            CampoTexto(pDescarga, { pDescarga = it; recalcular() }, "Pressão descarga (bar)",
+                                modifier = Modifier.weight(1f).padding(start = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                        }
+
+                        TituloSecao("Temperaturas")
+                        Row {
+                            CampoTexto(tSuccao, { tSuccao = it; recalcular() }, "Linha sucção (°C)",
+                                modifier = Modifier.weight(1f).padding(end = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            CampoTexto(tLiquido, { tLiquido = it; recalcular() }, "Linha líquido (°C)",
+                                modifier = Modifier.weight(1f).padding(start = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                        }
+                        Row {
+                            CampoTexto(tAmbiente, { tAmbiente = it }, "Ambiente (°C)", modifier = Modifier.weight(1f).padding(end = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            CampoTexto(tInterna, { tInterna = it }, "Interna (°C)", modifier = Modifier.weight(1f).padding(start = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                        }
+                        Row {
+                            CampoTexto(tEvap, { tEvap = it }, "T. evaporação (°C)", modifier = Modifier.weight(1f).padding(end = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                            CampoTexto(tCond, { tCond = it }, "T. condensação (°C)", modifier = Modifier.weight(1f).padding(start = 4.dp),
+                                teclado = KeyboardOptions(keyboardType = KeyboardType.Number))
+                        }
+                        Card(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Calculate, null, tint = MaterialTheme.colorScheme.secondary)
+                                Spacer(Modifier.width(8.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("Superaquecimento: ${superaq.ifBlank { "—" }} K", fontWeight = FontWeight.SemiBold)
+                                    Text("Subresfriamento: ${subresf.ifBlank { "—" }} K", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                    1 -> {
+                        TituloSecao("Diagnóstico assistido por IA")
+                        Text("Gera diagnóstico provável, causas, testes, riscos, correção, segurança e grau de confiança, " +
+                            "usando as medições e a base técnica interna.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        OutlinedButton(onClick = { gerarDiagnosticoIA() }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (carregandoDiag) "Gerando diagnóstico..." else "Gerar diagnóstico com IA")
+                        }
+                        CampoTexto(diagnosticoIA, { diagnosticoIA = it }, "Diagnóstico da IA (editável)", linhas = 10)
+                    }
+                    2 -> {
+                        TituloSecao("Fotos antes")
+                        SecaoFotos("Antes", fotosAntes) { fotosAntes = it }
+                        TituloSecao("Fotos durante")
+                        SecaoFotos("Durante", fotosDurante) { fotosDurante = it }
+                        TituloSecao("Fotos depois")
+                        SecaoFotos("Depois", fotosDepois) { fotosDepois = it }
+                    }
+                    3 -> {
+                        TituloSecao("Peças e serviços")
+                        CampoTexto(servicos, { servicos = it }, "Serviços realizados", linhas = 3)
+                        CampoTexto(pecas, { pecas = it }, "Peças substituídas", linhas = 3)
+                    }
+                    4 -> {
+                        TituloSecao("Recomendações técnicas")
+                        CampoTexto(recomendacoes, { recomendacoes = it }, "Recomendações", linhas = 5)
+                    }
+                    5 -> {
+                        TituloSecao("Manual anexado")
+                        if (manualAnexado.isNotBlank() && File(manualAnexado).exists()) {
+                            Card(onClick = { Arquivos.abrirPdf(context, File(manualAnexado)) }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.AttachFile, null, tint = MaterialTheme.colorScheme.secondary)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(File(manualAnexado).name.substringAfter("-"), Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodyMedium)
+                                    IconButton(onClick = { manualAnexado = "" }) {
+                                        Icon(Icons.Default.Delete, "Remover", tint = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("Nenhum manual anexado.", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        OutlinedButton(onClick = { anexarManual.launch("application/pdf") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                            Icon(Icons.Default.AttachFile, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp)); Text("Anexar manual (PDF)")
+                        }
+                        Text("Use o módulo \"Buscar Manual\" no menu para localizar o PDF do fabricante.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp))
+                    }
+                    6 -> {
+                        TituloSecao("Conclusão técnica")
+                        CampoTexto(conclusao, { conclusao = it }, "Conclusão", linhas = 5)
+                        OutlinedButton(
+                            onClick = {
+                                if (!OpenAiClient.disponivel(context)) {
+                                    Toast.makeText(context, "Configure a chave OpenAI e conecte-se à internet.", Toast.LENGTH_LONG).show()
+                                    return@OutlinedButton
+                                }
+                                carregandoIA = true
+                                escopo.launch {
+                                    val ctx = IAContexto.deRelatorio(montar(), equipsDoCliente.find { it.id == equipamentoId })
+                                    val r = OpenAiClient.perguntar(context, listOf(
+                                        "user" to "Com base nos dados técnicos a seguir, gere uma CONCLUSÃO TÉCNICA " +
+                                            "objetiva e profissional para o relatório (máx. 6 linhas):\n\n$ctx"
+                                    ))
+                                    when (r) {
+                                        is OpenAiClient.Resultado.Sucesso -> conclusao = r.texto
+                                        is OpenAiClient.Resultado.Erro -> Toast.makeText(context, r.mensagem, Toast.LENGTH_LONG).show()
+                                    }
+                                    carregandoIA = false
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (carregandoIA) "Gerando..." else "Gerar conclusão com IA")
+                        }
+                    }
+                    else -> {
+                        TituloSecao("Assinaturas")
+                        LinhaAssinatura("Técnico", assinaturaTecnico, { assinarTecnico = true }, { assinaturaTecnico = "" })
+                        LinhaAssinatura("Cliente", assinaturaCliente, { assinarCliente = true }, { assinaturaCliente = "" })
+                        AvisoListaCard("Segurança e avisos técnicos", Avisos.SEGURANCA)
+                    }
+                }
             }
 
-            TituloSecao("Assinaturas")
-            LinhaAssinatura("Técnico", assinaturaTecnico, { assinarTecnico = true }, { assinaturaTecnico = "" })
-            LinhaAssinatura("Cliente", assinaturaCliente, { assinarCliente = true }, { assinaturaCliente = "" })
-
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = { vm.salvar(montar()) { nav.popBackStack() } },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                enabled = clienteId > 0
-            ) { Text("Salvar relatório") }
-
-            Spacer(Modifier.height(8.dp))
-            Row {
-                OutlinedButton(
-                    onClick = {
-                        escopo.launch {
-                            val rel = montar()
-                            vm.salvar(rel) {}
-                            val cliente = vm.buscarCliente(clienteId)
-                            val equip = equipamentoId?.let { vm.buscarEquipamento(it) }
-                            val pdf = PdfGenerator.gerarRelatorio(context, rel, cliente, equip)
-                            Arquivos.abrirPdf(context, pdf)
-                        }
-                    },
-                    modifier = Modifier.weight(1f).padding(end = 4.dp),
+            // ---- Ações fixas no rodapé ----
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Button(
+                    onClick = { vm.salvar(montar()) { nav.popBackStack() } },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
                     enabled = clienteId > 0
-                ) {
-                    Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp)); Text("Gerar PDF")
-                }
-                OutlinedButton(
-                    onClick = {
-                        escopo.launch {
-                            val rel = montar()
-                            val cliente = vm.buscarCliente(clienteId)
-                            val equip = equipamentoId?.let { vm.buscarEquipamento(it) }
-                            val pdf = PdfGenerator.gerarRelatorio(context, rel, cliente, equip)
-                            Arquivos.compartilhar(context, pdf, "application/pdf", rel.numero)
-                        }
-                    },
-                    modifier = Modifier.weight(1f).padding(start = 4.dp),
-                    enabled = clienteId > 0
-                ) {
-                    Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp)); Text("Compartilhar")
+                ) { Text("Salvar relatório") }
+                Row(Modifier.padding(top = 6.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            escopo.launch {
+                                val rel = montar()
+                                vm.salvar(rel) {}
+                                val cliente = vm.buscarCliente(clienteId)
+                                val equip = equipamentoId?.let { vm.buscarEquipamento(it) }
+                                val pdf = PdfGenerator.gerarRelatorio(context, rel, cliente, equip)
+                                Arquivos.abrirPdf(context, pdf)
+                            }
+                        },
+                        modifier = Modifier.weight(1f).padding(end = 4.dp),
+                        enabled = clienteId > 0
+                    ) {
+                        Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp)); Text("PDF")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            escopo.launch {
+                                val rel = montar()
+                                val cliente = vm.buscarCliente(clienteId)
+                                val equip = equipamentoId?.let { vm.buscarEquipamento(it) }
+                                val pdf = PdfGenerator.gerarRelatorio(context, rel, cliente, equip)
+                                Arquivos.compartilhar(context, pdf, "application/pdf", rel.numero)
+                            }
+                        },
+                        modifier = Modifier.weight(1f).padding(start = 4.dp),
+                        enabled = clienteId > 0
+                    ) {
+                        Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp)); Text("Compartilhar")
+                    }
                 }
             }
-            Spacer(Modifier.height(24.dp))
         }
     }
 

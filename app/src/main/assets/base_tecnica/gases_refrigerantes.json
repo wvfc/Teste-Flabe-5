@@ -1,0 +1,14 @@
+{
+  "descricao": "Resumo técnico de fluidos refrigerantes. Valores aproximados; confirmar com tabela P/T oficial.",
+  "gases": [
+    {"nome": "R22", "tipo": "HCFC", "classe_seguranca": "A1", "gwp": 1810, "oleo": "Mineral/AB", "aplicacao": "AC e refrigeração antigos", "substitutos": ["R407C", "R422D", "R438A"], "obs": "Em eliminação."},
+    {"nome": "R134a", "tipo": "HFC", "classe_seguranca": "A1", "gwp": 1430, "oleo": "POE", "aplicacao": "Média temperatura, automotivo", "substitutos": ["R1234yf", "R513A"], "obs": "Não usar óleo mineral."},
+    {"nome": "R404A", "tipo": "Blend HFC", "classe_seguranca": "A1", "gwp": 3922, "oleo": "POE", "aplicacao": "Baixa/média temperatura comercial", "substitutos": ["R448A", "R449A", "R452A"], "obs": "Carregar em fase líquida. GWP alto."},
+    {"nome": "R410A", "tipo": "Blend HFC", "classe_seguranca": "A1", "gwp": 2088, "oleo": "POE", "aplicacao": "AC residencial/comercial", "substitutos": ["R32"], "obs": "Pressões ~60% maiores que R22."},
+    {"nome": "R32", "tipo": "HFC", "classe_seguranca": "A2L", "gwp": 675, "oleo": "POE/PVE", "aplicacao": "AC novo", "substitutos": [], "obs": "Levemente inflamável. Temperatura de descarga alta."},
+    {"nome": "R290", "tipo": "HC", "classe_seguranca": "A3", "gwp": 3, "oleo": "Mineral/POE", "aplicacao": "Comercial leve", "substitutos": [], "obs": "INFLAMÁVEL. Carga limitada por norma."},
+    {"nome": "R600a", "tipo": "HC", "classe_seguranca": "A3", "gwp": 3, "oleo": "Mineral", "aplicacao": "Refrigeração doméstica", "substitutos": [], "obs": "INFLAMÁVEL. Sucção em vácuo: atenção a umidade/ar."},
+    {"nome": "CO2/R744", "tipo": "Natural", "classe_seguranca": "A1", "gwp": 1, "oleo": "POE específico", "aplicacao": "Supermercados/industrial", "substitutos": [], "obs": "Pressões muito elevadas (transcrítico)."},
+    {"nome": "R717/Amônia", "tipo": "Natural", "classe_seguranca": "B2L", "gwp": 0, "oleo": "Mineral específico", "aplicacao": "Industrial", "substitutos": [], "obs": "TÓXICA. Incompatível com cobre."}
+  ]
+}

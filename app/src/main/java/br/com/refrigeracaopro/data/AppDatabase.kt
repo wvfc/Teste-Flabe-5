@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
  * Banco de dados local (Room/SQLite). Todos os cadastros, OS, relatórios e
@@ -14,7 +16,7 @@ import androidx.room.RoomDatabase
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,13 +34,22 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var instancia: AppDatabase? = null
 
+        /** Migração 1→2: novos campos de manuais e diagnóstico IA. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE equipamentos ADD COLUMN manuais TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE relatorios ADD COLUMN diagnosticoIA TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE relatorios ADD COLUMN manualAnexado TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     NOME_BANCO
-                ).build().also { instancia = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instancia = it }
             }
 
         /** Fecha o banco (usado antes de backup/restauração). */

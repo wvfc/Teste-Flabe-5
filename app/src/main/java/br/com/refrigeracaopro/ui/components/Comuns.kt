@@ -3,6 +3,7 @@ package br.com.refrigeracaopro.ui.components
 import android.graphics.Bitmap
 import android.graphics.Paint
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -154,21 +155,42 @@ fun SecaoFotos(
     var uriCamera by remember { mutableStateOf<Pair<Uri, String>?>(null) }
 
     val galeria = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        // Fotos da galeria: copiadas e comprimidas para o armazenamento interno
         val novas = uris.mapNotNull { Arquivos.copiarImagem(context, it) }
         if (novas.isNotEmpty()) aoMudar(fotos + novas)
     }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
         uriCamera?.let { (_, caminho) ->
-            if (ok) aoMudar(fotos + caminho) else File(caminho).delete()
+            if (ok) {
+                // Comprime a foto recém-capturada antes de vincular ao registro
+                Arquivos.comprimirNoLocal(context, caminho)
+                aoMudar(fotos + caminho)
+            } else {
+                // Usuário cancelou ou a captura falhou: remove o arquivo vazio
+                File(caminho).delete()
+            }
         }
         uriCamera = null
     }
-    val permissaoCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) {
-            val par = Arquivos.uriParaCamera(context)
-            uriCamera = par
-            camera.launch(par.first)
+
+    // Dispara a câmera com URI segura via FileProvider; trata ausência de app/erros
+    fun abrirCamera() {
+        if (!Arquivos.temCamera(context)) {
+            Toast.makeText(context, "Nenhum app de câmera disponível.", Toast.LENGTH_SHORT).show()
+            return
         }
+        val par = Arquivos.uriParaCamera(context)
+        uriCamera = par
+        runCatching { camera.launch(par.first) }.onFailure {
+            Toast.makeText(context, "Não foi possível abrir a câmera.", Toast.LENGTH_SHORT).show()
+            File(par.second).delete()
+            uriCamera = null
+        }
+    }
+
+    val permissaoCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { concedida ->
+        if (concedida) abrirCamera()
+        else Toast.makeText(context, "Permissão de câmera negada.", Toast.LENGTH_SHORT).show()
     }
 
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -203,7 +225,14 @@ fun SecaoFotos(
                 Spacer(Modifier.width(6.dp))
                 Text("Galeria")
             }
-            OutlinedButton(onClick = { permissaoCamera.launch(android.Manifest.permission.CAMERA) }) {
+            OutlinedButton(onClick = {
+                // Verifica se a permissão já foi concedida; senão, solicita
+                val concedida = androidx.core.content.ContextCompat.checkSelfPermission(
+                    context, android.Manifest.permission.CAMERA
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (concedida) abrirCamera()
+                else permissaoCamera.launch(android.Manifest.permission.CAMERA)
+            }) {
                 Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Câmera")

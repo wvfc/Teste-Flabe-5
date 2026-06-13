@@ -1,0 +1,12 @@
+{
+  "descricao": "Falhas comuns em refrigeração e climatização e suas causas típicas.",
+  "falhas": [
+    {"falha": "Vazamento de fluido", "causas": ["Solda fria", "Vibração/fadiga", "Corrosão", "Conexões flare frouxas"], "acao": "Detectar, reparar, vácuo e recarga por peso."},
+    {"falha": "Formação de gelo no evaporador", "causas": ["Degelo ineficiente", "Pouca carga", "Baixa vazão de ar", "Umidade infiltrada"], "acao": "Revisar degelo, ventiladores e carga."},
+    {"falha": "Condensador sujo", "causas": ["Poeira/gordura", "Aletas amassadas"], "acao": "Limpeza química/mecânica e desempeno das aletas."},
+    {"falha": "Umidade no sistema", "causas": ["Vácuo insuficiente", "Filtro saturado"], "acao": "Trocar filtro secador e refazer vácuo profundo."},
+    {"falha": "Queima do compressor", "causas": ["Golpe de líquido", "Superaquecimento elétrico", "Baixa tensão", "Falta de óleo"], "acao": "Investigar causa-raiz antes de substituir."},
+    {"falha": "Capacitor inchado/aberto", "causas": ["Sobretensão", "Vida útil", "Calor excessivo"], "acao": "Substituir por µF e tensão iguais ou superiores."},
+    {"falha": "Dreno entupido", "causas": ["Sujeira/limo"], "acao": "Desobstruir e higienizar bandeja/linha de dreno."}
+  ]
+}

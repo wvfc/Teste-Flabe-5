@@ -78,6 +78,8 @@ dependencies {
 
     // Carregamento de imagens (fotos de equipamentos/relatórios)
     implementation("io.coil-kt:coil-compose:2.6.0")
+    // Correção de orientação (EXIF) das fotos da câmera
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 

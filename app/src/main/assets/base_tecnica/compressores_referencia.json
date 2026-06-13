@@ -1,0 +1,13 @@
+{
+  "descricao": "Compressores de referência. Dados aproximados; confirmar no catálogo do fabricante.",
+  "compressores": [
+    {"marca": "Embraco", "modelo": "EMIS70HER", "hp": "1/5", "fluido": "R134a", "aplicacao": "Média/Alta", "oleo": "POE", "partida": "RSIR/PTC"},
+    {"marca": "Embraco", "modelo": "NEU6213GK", "hp": "1/3", "fluido": "R404A/R507", "aplicacao": "Baixa", "oleo": "POE", "partida": "CSIR"},
+    {"marca": "Tecumseh", "modelo": "AE4440Y-FZ1A", "hp": "1/2", "fluido": "R404A", "aplicacao": "Baixa/Média", "oleo": "POE", "partida": "CSR"},
+    {"marca": "Danfoss/Secop", "modelo": "SC15G", "hp": "1/2", "fluido": "R134a", "aplicacao": "Média", "oleo": "POE", "partida": "CSIR"},
+    {"marca": "Danfoss", "modelo": "NTZ068", "hp": "3/4", "fluido": "R404A/R507", "aplicacao": "Baixa", "oleo": "POE", "partida": "CSR"},
+    {"marca": "Bitzer", "modelo": "4FES-3", "hp": "3", "fluido": "R404A/R134a", "aplicacao": "Média/Baixa", "oleo": "POE", "partida": "Direta"},
+    {"marca": "Copeland", "modelo": "ZB21KQE", "hp": "2", "fluido": "R404A/R134a", "aplicacao": "Média", "oleo": "POE", "partida": "Scroll direta"}
+  ],
+  "regra_substituicao": "Substituição direta exige: mesmo fluido, faixa de aplicação compatível, tensão/fase iguais, mesmo óleo e capacidade frigorífica próxima."
+}

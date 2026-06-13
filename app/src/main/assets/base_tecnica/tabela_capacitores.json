@@ -1,0 +1,22 @@
+{
+  "descricao": "Referência orientativa de capacitores por potência de motor monofásico. Valores estimados; conferir plaqueta.",
+  "permanente": [
+    {"hp": "1/4", "uf_tipico": "5-8", "tensao_vac": "250/440"},
+    {"hp": "1/3", "uf_tipico": "8-12", "tensao_vac": "440"},
+    {"hp": "1/2", "uf_tipico": "12-20", "tensao_vac": "440"},
+    {"hp": "3/4", "uf_tipico": "20-30", "tensao_vac": "440"},
+    {"hp": "1", "uf_tipico": "30-40", "tensao_vac": "440"}
+  ],
+  "partida": [
+    {"hp": "1/4", "uf_tipico": "43-53", "tensao_vac": "250/330"},
+    {"hp": "1/3", "uf_tipico": "53-64", "tensao_vac": "330"},
+    {"hp": "1/2", "uf_tipico": "88-108", "tensao_vac": "330"},
+    {"hp": "3/4", "uf_tipico": "108-130", "tensao_vac": "330"},
+    {"hp": "1", "uf_tipico": "130-189", "tensao_vac": "330"}
+  ],
+  "regras": [
+    "Permanente: tensão igual ou superior à original.",
+    "Partida: uso intermitente, sempre com relé/PTC/centrífugo adequado.",
+    "Descarregue o capacitor antes de manusear."
+  ]
+}

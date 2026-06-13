@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import br.com.refrigeracaopro.ia.BaseTecnica
 import br.com.refrigeracaopro.ia.OpenAiClient
 import br.com.refrigeracaopro.ui.components.TelaBase
 import kotlinx.coroutines.launch
@@ -65,7 +66,10 @@ fun AssistenteIAScreen(nav: NavController) {
         escopo.launch {
             // Monta o histórico no formato esperado pela API
             val historico = mensagens.map { (if (it.doUsuario) "user" else "assistant") to it.texto }
-            when (val r = OpenAiClient.perguntar(context, historico)) {
+            // Injeta a base técnica local + formato de diagnóstico estruturado
+            val instrucoes = "BASE TÉCNICA (consulte antes de responder):\n" +
+                BaseTecnica.resumoPara(context, texto) + "\n\n" + BaseTecnica.FORMATO_DIAGNOSTICO
+            when (val r = OpenAiClient.perguntar(context, historico, instrucoes)) {
                 is OpenAiClient.Resultado.Sucesso -> mensagens.add(Mensagem(false, r.texto))
                 is OpenAiClient.Resultado.Erro -> mensagens.add(Mensagem(false, "⚠️ ${r.mensagem}"))
             }

@@ -1,0 +1,18 @@
+{
+  "descricao": "Carga adicional aproximada por metro de linha de líquido excedente. Conferir manual do fabricante.",
+  "comprimento_padrao_m": 5,
+  "gramas_por_metro_linha_liquido": [
+    {"diametro": "1/4\"", "g_por_m": 20},
+    {"diametro": "5/16\"", "g_por_m": 30},
+    {"diametro": "3/8\"", "g_por_m": 55},
+    {"diametro": "1/2\"", "g_por_m": 110},
+    {"diametro": "5/8\"", "g_por_m": 160},
+    {"diametro": "3/4\"", "g_por_m": 250}
+  ],
+  "regras": [
+    "Priorizar carga por balança (peso).",
+    "Blends (R404A, R407C, R410A): carregar em fase líquida.",
+    "Registrar peso inicial e final do cilindro.",
+    "Valor final depende do fabricante."
+  ]
+}

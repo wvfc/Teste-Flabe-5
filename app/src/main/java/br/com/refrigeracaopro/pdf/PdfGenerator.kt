@@ -375,6 +375,7 @@ object PdfGenerator {
             )
         )
 
+        if (rel.diagnosticoIA.isNotBlank()) { b.secao("Diagnóstico assistido por IA"); b.paragrafo(rel.diagnosticoIA) }
         if (rel.servicosRealizados.isNotBlank()) { b.secao("Serviços realizados"); b.paragrafo(rel.servicosRealizados) }
         if (rel.pecasSubstituidas.isNotBlank()) { b.secao("Peças substituídas"); b.paragrafo(rel.pecasSubstituidas) }
         if (rel.recomendacoes.isNotBlank()) { b.secao("Recomendações técnicas"); b.paragrafo(rel.recomendacoes) }
@@ -384,6 +385,10 @@ object PdfGenerator {
         b.fotos("Fotos — depois", Arquivos.textoParaLista(rel.fotosDepois))
 
         if (rel.conclusao.isNotBlank()) { b.secao("Conclusão técnica"); b.paragrafo(rel.conclusao) }
+
+        // Avisos técnicos/segurança no corpo do relatório
+        b.secao("Avisos técnicos e de segurança")
+        b.paragrafo(br.com.refrigeracaopro.data.Avisos.SEGURANCA.joinToString("\n") { "• $it" })
 
         b.assinaturas(
             listOf(

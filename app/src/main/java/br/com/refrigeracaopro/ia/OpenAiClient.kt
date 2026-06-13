@@ -58,8 +58,16 @@ object OpenAiClient {
     /**
      * Envia uma conversa para a API. [mensagens] são pares (papel, conteúdo),
      * com papel "user" ou "assistant".
+     *
+     * @param instrucoesExtra texto adicional de sistema (ex.: base técnica local
+     *   + formato de diagnóstico). Quando presente, a IA passa a fundamentar a
+     *   resposta na base interna em vez de responder genericamente.
      */
-    suspend fun perguntar(context: Context, mensagens: List<Pair<String, String>>): Resultado =
+    suspend fun perguntar(
+        context: Context,
+        mensagens: List<Pair<String, String>>,
+        instrucoesExtra: String? = null,
+    ): Resultado =
         withContext(Dispatchers.IO) {
             val chave = context.chaveOpenAi
             if (chave.isBlank()) return@withContext Resultado.Erro(
@@ -72,6 +80,9 @@ object OpenAiClient {
                 put("model", context.modeloIa)
                 put("messages", JSONArray().apply {
                     put(JSONObject().put("role", "system").put("content", PROMPT_SISTEMA))
+                    if (!instrucoesExtra.isNullOrBlank()) {
+                        put(JSONObject().put("role", "system").put("content", instrucoesExtra))
+                    }
                     mensagens.forEach { (papel, conteudo) ->
                         put(JSONObject().put("role", papel).put("content", conteudo))
                     }

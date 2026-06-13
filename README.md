@@ -23,8 +23,19 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 | **Agendamentos** | Manutenção preventiva com periodicidade, **notificações locais**, histórico e geração de OS. |
 | **Consulta de gases** | 13 fluidos (R22, R134a, R404A, R407C, R410A, R507, R32, R290, R600a, R1234yf, R1234ze, CO₂/R744, Amônia/R717) com dados técnicos. |
 | **Cálculos** | Superaquecimento e subresfriamento via tabela P/T interna aproximada. |
-| **Assistente IA** | Chat técnico e geração de conclusão de relatório via OpenAI. |
+| **Motores/Compressores** | Pesquisa de compressores e **sugestão de equivalentes**, com alerta de diferenças críticas (fluido, óleo, tensão, fase, capacidade, aplicação). |
+| **Comparar Componentes** | Comparação lado a lado de compressores, condensadoras, evaporadores, ventiladores, controladores, válvulas, pressostatos e filtros. |
+| **Cálculo de capacitor** | Estimativa de capacitor permanente e de partida (µF) e tensão mínima, por potência/tensão/aplicação. |
+| **Cálculo de carga de fluido** | Estimativa de carga adicional por comprimento de linha + registro de peso do cilindro (carga por balança). |
+| **Buscar Manual** | Busca de manuais técnicos no navegador (priorizando fabricante) e **anexo de PDF** ao equipamento para consulta offline. |
+| **Assistente IA** | Chat técnico e geração de conclusão/diagnóstico, fundamentado na **base técnica interna (JSON offline)**, com formato estruturado (diagnóstico, causas, testes, riscos, correção, segurança, grau de confiança). |
 | **Configurações** | Dados da empresa/técnico, logo, chave OpenAI (criptografada), modelo de IA, teste de conexão e **backup/restauração**. |
+
+### Câmera e fotos
+A captura por câmera usa `ActivityResultContracts.TakePicture` com **URI segura via FileProvider** (sem caminho absoluto direto), valida a existência de app de câmera, trata cancelamento/erro sem travar, corrige a rotação (EXIF) e **comprime** a imagem antes de salvar/exportar. Fotos da galeria continuam funcionando e também são comprimidas. Permissões tratadas para Android 10 a 13+.
+
+### Base técnica interna para a IA
+Em `app/src/main/assets/base_tecnica/` há arquivos JSON consultados **offline** antes de chamar a IA: `gases_refrigerantes`, `compressores_referencia`, `diagnosticos_refrigeracao`, `falhas_comuns`, `procedimentos_tecnicos`, `tabela_capacitores`, `tabela_carga_fluido`. O contexto do relatório (medições, fluido, superaquecimento/subresfriamento, defeito, serviços) é combinado a essa base para gerar diagnósticos fundamentados.
 
 ---
 

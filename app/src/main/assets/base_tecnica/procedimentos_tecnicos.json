@@ -1,0 +1,10 @@
+{
+  "descricao": "Procedimentos técnicos de campo em refrigeração.",
+  "procedimentos": [
+    {"nome": "Vácuo no sistema", "passos": ["Recolher fluido (se houver)", "Conectar bomba e vacuômetro", "Evacuar até abaixo de 500 mícrons", "Teste de subida (standing vacuum)"], "seguranca": "Não usar o compressor para fazer vácuo."},
+    {"nome": "Carga por peso", "passos": ["Pesar cilindro (peso inicial)", "Carregar conforme etiqueta/cálculo", "Registrar peso final", "Conferir superaquecimento/subresfriamento"], "seguranca": "Blends (R404A/R407C/R410A): carregar em fase líquida."},
+    {"nome": "Detecção de vazamento", "passos": ["Pressurizar com N2/traçador se necessário", "Detector eletrônico + espuma", "Marcar pontos", "Reparar e reteste"], "seguranca": "Nunca pressurizar com oxigênio."},
+    {"nome": "Substituição de compressor", "passos": ["Recolher fluido", "Remover compressor", "Instalar novo + filtro secador novo", "Vácuo e carga", "Verificar óleo e partida"], "seguranca": "Recolher fluido corretamente; usar EPI."},
+    {"nome": "Recolhimento de fluido", "passos": ["Conectar recolhedora e cilindro recuperável", "Recolher até pressão alvo", "Pesar e identificar"], "seguranca": "Proibido liberar fluido na atmosfera."}
+  ]
+}

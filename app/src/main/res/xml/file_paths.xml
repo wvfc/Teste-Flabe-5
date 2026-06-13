@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <!-- PDFs gerados e fotos salvas no armazenamento interno do app -->
-    <files-path name="arquivos" path="." />
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Diretórios expostos com segurança via FileProvider -->
     <cache-path name="cache" path="." />
+    <files-path name="files" path="." />
+    <external-files-path name="external_files" path="Pictures/" />
 </paths>

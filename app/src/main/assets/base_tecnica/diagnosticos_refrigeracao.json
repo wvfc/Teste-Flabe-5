@@ -1,0 +1,45 @@
+{
+  "descricao": "Regras de diagnóstico por sintoma, com base em medições de pressão, temperatura, superaquecimento e subresfriamento.",
+  "regras": [
+    {
+      "sintoma": "Não gela / pouca refrigeração",
+      "indicadores": ["Superaquecimento alto", "Subresfriamento baixo", "Pressão de sucção baixa"],
+      "causas_provaveis": ["Falta de carga de fluido", "Vazamento", "Filtro secador/capilar obstruído", "TEV subdimensionada ou travada"],
+      "testes": ["Medir superaquecimento e subresfriamento", "Detecção de vazamento", "Verificar perda de carga no filtro (queda de temperatura)"],
+      "riscos": ["Operar com baixa carga pode aquecer o compressor"],
+      "correcao": "Localizar e reparar vazamento, fazer vácuo e recarregar por peso."
+    },
+    {
+      "sintoma": "Compressor liga e desliga (ciclo curto)",
+      "indicadores": ["Pressostato atuando", "Sobrecarga térmica"],
+      "causas_provaveis": ["Condensador sujo", "Falta/excesso de carga", "Pressostato desajustado", "Capacitor/relé defeituoso", "Baixa tensão"],
+      "testes": ["Medir pressões alta/baixa", "Medir corrente vs. plaqueta", "Inspecionar condensador e ventilador", "Testar capacitor"],
+      "riscos": ["Queima do compressor por repartidas frequentes"],
+      "correcao": "Limpar condensador, ajustar carga/pressostato, substituir capacitor/relé conforme teste."
+    },
+    {
+      "sintoma": "Alta pressão de descarga",
+      "indicadores": ["Subresfriamento alto", "Corrente elevada"],
+      "causas_provaveis": ["Condensador sujo/obstruído", "Excesso de carga", "Não-condensáveis (ar) no sistema", "Ventilador do condensador parado"],
+      "testes": ["Verificar ventilador e limpeza do condensador", "Comparar pressão de condensação com temperatura ambiente", "Avaliar subresfriamento"],
+      "riscos": ["Desarme por alta pressão; esforço do compressor"],
+      "correcao": "Limpar condensador, ajustar carga, recolher e refazer vácuo se houver não-condensáveis."
+    },
+    {
+      "sintoma": "Retorno de líquido ao compressor",
+      "indicadores": ["Superaquecimento muito baixo", "Linha de sucção com gelo/úmida"],
+      "causas_provaveis": ["Excesso de carga", "TEV muito aberta", "Bulbo mal fixado", "Baixa carga térmica/evaporador sujo"],
+      "testes": ["Medir superaquecimento na sucção", "Verificar fixação e isolamento do bulbo"],
+      "riscos": ["Golpe de líquido — dano mecânico ao compressor"],
+      "correcao": "Ajustar superaquecimento, reposicionar bulbo, corrigir carga."
+    },
+    {
+      "sintoma": "Compressor não parte / zumbido",
+      "indicadores": ["Sobrecarga atua", "Corrente de rotor bloqueado"],
+      "causas_provaveis": ["Capacitor de partida ruim", "Relé/PTC defeituoso", "Enrolamento em curto/aberto", "Baixa tensão", "Compressor travado"],
+      "testes": ["Testar capacitor (µF)", "Medir resistência dos enrolamentos", "Verificar tensão de alimentação", "Testar relé/PTC"],
+      "riscos": ["Choque elétrico", "Queima do enrolamento"],
+      "correcao": "Substituir capacitor/relé conforme teste; se enrolamento danificado, trocar compressor."
+    }
+  ]
+}
