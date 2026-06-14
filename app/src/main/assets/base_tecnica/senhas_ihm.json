@@ -1,143 +1,13 @@
 [
   {
-    "slug": "atlas-copco",
-    "nome": "Atlas Copco / Chicago Pneumatic",
-    "descricao": "Senhas e acessos por modelo de IHM.",
-    "itens": [
-      {"titulo": "Elektronikon e CP Tronic MK III", "usuario": null, "senha": null, "senha_ref": "atlas-copco/elektronikon-cp-tronic-mk3", "observacao": "Inclui códigos para ARAVF, horas e DSS.", "imagens": []},
-      {"titulo": "Elektronikon I (MK IV Std) e Elektronikon I (MK V Std) / CP Tronic", "usuario": null, "senha": null, "senha_ref": "atlas-copco/elektronikon-i-mk4-mk5-std", "observacao": "Inclui manutenção (quando sem senha ativa), parametrização e tipo de partida.", "imagens": []},
-      {"titulo": "Elektronikon II e III / CP Tronic MK IV", "usuario": null, "senha": null, "senha_ref": "atlas-copco/elektronikon-ii-iii-cp-tronic-mk4", "observacao": "Inclui ARAVF, horas, DSS e avanços manuais (BD).", "imagens": []},
-      {"titulo": "Elektronikon MK V Graphic / ES 4000", "usuario": null, "senha": "2801 ou 2804", "senha_ref": "atlas-copco/elektronikon-mkv-graphic-es4000", "observacao": "Acesso geral Atlas: 2801. Inclui níveis (service/customer), acesso total e funções como DSS/ARAVF.", "imagens": []},
-      {"titulo": "ES 3000", "usuario": null, "senha": null, "senha_ref": "atlas-copco/es3000", "observacao": "Inclui configurações gerais e alteração de pressão.", "imagens": []},
-      {"titulo": "ES 4000 Basic / Elektronikon MK5 Basic", "usuario": null, "senha": null, "senha_ref": "atlas-copco/es4000-basic-elektronikon-mk5-basic", "observacao": "Inclui configuração/manutenção e atalho de bloquear/desbloquear no painel.", "imagens": []},
-      {"titulo": "ES 130 (Gerenciador)", "usuario": null, "senha": null, "senha_ref": "atlas-copco/es130-gerenciador", "observacao": "Acesso total por código do gerenciador.", "imagens": []},
-      {"titulo": "Inversores WEG (linha VSD - Atlas)", "usuario": null, "senha": null, "senha_ref": "atlas-copco/inversores-weg-vsd", "observacao": "Senhas separadas (WEG e Atlas).", "imagens": []}
-    ]
-  },
-  {
-    "slug": "august",
-    "nome": "August",
-    "descricao": "Controladores MAM.",
-    "itens": [
-      {"titulo": "Controlador MAM 680 (Chinês)", "usuario": null, "senha": null, "senha_ref": "august/mam-680", "observacao": "Lista de códigos de acesso/ajuste conforme material.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "boge",
-    "nome": "Boge",
-    "descricao": "Focus Controller / Focus Basic.",
-    "itens": [
-      {"titulo": "Focus Controller", "usuario": null, "senha": null, "senha_ref": "boge/focus-controller", "observacao": "Senha de parâmetros.", "imagens": []},
-      {"titulo": "Focus Basic", "usuario": null, "senha": null, "senha_ref": "boge/focus-basic", "observacao": "Códigos para reset manutenção e alteração de pressão.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "bumatec",
-    "nome": "Bumatec",
-    "descricao": "Configurações e manutenção.",
-    "itens": [
-      {"titulo": "Controlador (geral)", "usuario": null, "senha": null, "senha_ref": "bumatec/geral", "observacao": "Códigos de configuração/manutenção conforme material.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "coaire",
-    "nome": "Coaire",
-    "descricao": "Configurações e manutenção.",
-    "itens": [
-      {"titulo": "Controlador (geral)", "usuario": null, "senha": null, "senha_ref": "coaire/geral", "observacao": "Código para configurações/manutenção conforme material.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "compair",
-    "nome": "Compair",
-    "descricao": "Delcos (XL/Pro/3100/1000) e níveis de acesso.",
-    "itens": [
-      {"titulo": "Delcos XL", "usuario": null, "senha": null, "senha_ref": "compair/delcos-xl", "observacao": "Múltiplos níveis de acesso.", "imagens": [],
-        "codigos": [
-          {"nome": "User (Nível 1)", "valor": "3031"},
-          {"nome": "Maintenance (Nível 2)", "valor": "3100"},
-          {"nome": "Technician (Nível 3)", "valor": "03011"},
-          {"nome": "Specialist (Nível 4)", "valor": "0111"},
-          {"nome": "Setup Code", "valor": "02222"},
-          {"nome": "Snapshot", "valor": "7123"},
-          {"nome": "Auto Restart", "valor": "8888"},
-          {"nome": "BLS Enable", "valor": "1234"},
-          {"nome": "Ext Speed Limiter", "valor": "09466"},
-          {"nome": "Alarm Logging", "valor": "50"}
-        ]},
-      {"titulo": "Delcos Pro", "usuario": null, "senha": null, "senha_ref": "compair/delcos-pro", "observacao": "Níveis de acesso (User/Technician/Specialist/Setup etc.).", "imagens": []},
-      {"titulo": "Delcos 3100", "usuario": null, "senha": null, "senha_ref": "compair/delcos-3100", "observacao": "Níveis de acesso (User/Maintenance/Technician/Specialist/Setup etc.).", "imagens": []},
-      {"titulo": "Delcos 1000", "usuario": null, "senha": null, "senha_ref": "compair/delcos-1000", "observacao": "Acesso por sequência de teclas no painel (ver manual).", "imagens": []},
-      {"titulo": "Códigos prompt / extras", "usuario": null, "senha": null, "senha_ref": "compair/resumo-niveis", "observacao": "Códigos adicionais.", "imagens": [],
-        "codigos": [
-          {"nome": "Código prompt 1", "valor": "1185"},
-          {"nome": "Código prompt 2", "valor": "1951"},
-          {"nome": "Código 3", "valor": "2210"},
-          {"nome": "Outros", "valor": "8888, 2222, 2345"}
-        ]}
-    ]
-  },
-  {
-    "slug": "elgi",
-    "nome": "Elgi",
-    "descricao": "Neuron e variantes.",
-    "itens": [
-      {"titulo": "Neuron II", "usuario": null, "senha": null, "senha_ref": "elgi/neuron-ii", "observacao": "Inclui códigos para fábrica, manutenção/serviços e operação.", "imagens": []},
-      {"titulo": "Neuron GFB", "usuario": null, "senha": "0100 / 1688 / 1988", "senha_ref": "elgi/neuron-gfb", "observacao": "Senhas do controlador Neuron/GFB.", "imagens": []},
-      {"titulo": "Elgi Euro", "usuario": null, "senha": "3434 / 3535 / 4545", "senha_ref": "elgi/euro", "observacao": "Códigos de acesso/níveis.", "imagens": []},
-      {"titulo": "Elgi EN", "usuario": null, "senha": "0009 / 0121", "senha_ref": "elgi/en", "observacao": "Códigos de acesso.", "imagens": []},
-      {"titulo": "Elgi EG", "usuario": null, "senha": null, "senha_ref": "elgi/eg", "observacao": "Inclui senha de fábrica e códigos de operação.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "fiac",
-    "nome": "Fiac",
-    "descricao": "Configurações.",
-    "itens": [
-      {"titulo": "Controlador (geral)", "usuario": null, "senha": null, "senha_ref": "fiac/geral", "observacao": "Código de configuração conforme material.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "fs-curtis",
-    "nome": "FS Curtis",
-    "descricao": "AIMS Plus (SEM/SEG) e funções.",
-    "itens": [
-      {"titulo": "AIMS Plus (SEM/SEG)", "usuario": null, "senha": "1111 / 302 / 201 / 202", "senha_ref": "fs-curtis/aims-plus", "observacao": "Inclui códigos para idioma, limpar histórico, reset e restauração padrão.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "gfb-neuron",
-    "nome": "GFB / Neuron",
-    "descricao": "Controlador Neuron/GFB.",
-    "itens": [
-      {"titulo": "Neuron / GFB (geral)", "usuario": "0100", "senha": "1688 / 1988", "senha_ref": "gfb-neuron/geral", "observacao": "Neuron usuário 0100; senhas 1688 e 1988.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "hydrovane",
-    "nome": "Hydrovane",
-    "descricao": "Hydrovane Pro (menus/idioma/reset/serviços).",
-    "itens": [
-      {"titulo": "Hydrovane Pro", "usuario": null, "senha": null, "senha_ref": "hydrovane/pro", "observacao": "Atalhos de menus/idioma e códigos de reset/serviços/energia.", "imagens": []}
-    ]
-  },
-  {
     "slug": "ingersoll-rand",
     "nome": "Ingersoll Rand",
-    "descricao": "Intellisys (procedimentos e senha master onde aplicável).",
+    "descricao": "Intellisys (procedimentos e senha master).",
     "itens": [
-      {"titulo": "Intellisys SE 15–100 HP", "usuario": null, "senha": null, "senha_ref": "ingersoll-rand/intellisys-se-15-100", "observacao": "Procedimentos de configurações de fábrica e calibração de sensores.", "imagens": []},
-      {"titulo": "Intellisys Xe-90 / Xe-145", "usuario": null, "senha": "2010", "senha_ref": "ingersoll-rand/intellisys-xe90-xe145", "observacao": "Senha master.", "imagens": []},
-      {"titulo": "Intellisys SG / SGV / SGN / SGNev", "usuario": null, "senha": null, "senha_ref": "ingersoll-rand/intellisys-sg-sgv-sgn-sgnev", "observacao": "Procedimento de fábrica e tabela de códigos internos.", "imagens": []},
-      {"titulo": "Intellisys S3 (Airmaster S1)", "usuario": null, "senha": null, "senha_ref": "ingersoll-rand/intellisys-s3-airmaster-s1", "observacao": "Configurações de fábrica conforme material.", "imagens": []}
-    ]
-  },
-  {
-    "slug": "jaguar",
-    "nome": "Jaguar",
-    "descricao": "Controlador chinês MAM.",
-    "itens": [
-      {"titulo": "Controlador Chinês MAM", "usuario": null, "senha": null, "senha_ref": "jaguar/mam", "observacao": "Código de configuração conforme material.", "imagens": []}
+      {"titulo": "Intellisys SE 15–100 HP", "usuario": null, "senha": null, "observacao": "Config. de fábrica: segurar o botão de alívio por 2 s, soltar e pressionar o botão obscuro do lado direito (display indica 'Pronto para Partir'). Calibrar sensores: pressionar setas ↑ e ↓ ao mesmo tempo (despressurizar o sistema antes)."},
+      {"titulo": "Intellisys Xe-90 / Xe-145", "usuario": null, "senha": "2010", "observacao": "Senha master."},
+      {"titulo": "Intellisys SG / SGV / SGN / SGNev", "usuario": null, "senha": null, "observacao": "Config. de fábrica: Menu 2×, depois Carga 1×, depois Alívio.", "codigos": [{"nome": "Service Display", "valor": "3"}, {"nome": "Max. Values", "valor": "16"}, {"nome": "Idle Mode", "valor": "33"}, {"nome": "Service Tool", "valor": "218"}, {"nome": "Diag. Modular Drive", "valor": "342"}, {"nome": "Fixed Speed", "valor": "91"}]},
+      {"titulo": "Intellisys S3 (Airmaster S1)", "usuario": null, "senha": "0101 e 1954", "observacao": "Configurações de fábrica."}
     ]
   },
   {
@@ -145,9 +15,32 @@
     "nome": "Kaeser",
     "descricao": "Sigma Control (Basic/1/2).",
     "itens": [
-      {"titulo": "Sigma Control Basic", "usuario": null, "senha": null, "senha_ref": "kaeser/sigma-control-basic", "observacao": "Manutenção/configurações e lógica de bits (tipo de partida).", "imagens": []},
-      {"titulo": "Sigma Control 1", "usuario": null, "senha": null, "senha_ref": "kaeser/sigma-control-1", "observacao": "Configurações por códigos (L1–L4 e outros).", "imagens": []},
-      {"titulo": "Sigma Control 2", "usuario": null, "senha": null, "senha_ref": "kaeser/sigma-control-2", "observacao": "Ajuste de contraste por teclas.", "imagens": []}
+      {"titulo": "Sigma Control Basic", "usuario": null, "senha": null, "observacao": "Tipo de partida via Bit2/Bit3: 00 = estrela-triângulo (padrão), 10 = direta 3 fases, 01 = direta 1 fase. Bit1 = 1 para máquinas SXC.", "codigos": [{"nome": "Manutenção", "valor": "BASIC"}, {"nome": "Configurações", "valor": "CERES"}]},
+      {"titulo": "Sigma Control 1", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Configurações", "valor": "JUL98 / 11TTY / 12EXP / 30UOZ / Samba"}, {"nome": "L1", "valor": "BECX1"}, {"nome": "L2", "valor": "BEDX2"}, {"nome": "L3", "valor": "W99RT"}, {"nome": "L4", "valor": "1978P"}]},
+      {"titulo": "Sigma Control 2", "usuario": null, "senha": null, "observacao": "Regular contraste: botão (I) Informações + seta ↓ ou ↑."}
+    ]
+  },
+  {
+    "slug": "schulz",
+    "nome": "Schulz",
+    "descricao": "Control 1/2/3, Control Net, Aircon e SRP.",
+    "itens": [
+      {"titulo": "Control 1 e Control 2", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Manutenção e pressão", "valor": "0009"}, {"nome": "Config. de fábrica", "valor": "0121"}, {"nome": "Reset geral", "valor": "9750"}]},
+      {"titulo": "Control 3", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Parâmetros de usuário", "valor": "999"}, {"nome": "Parâmetros de fábrica", "valor": "1688 (acessar) / 388 (alterar)"}, {"nome": "Parâmetros de calibração", "valor": "0002 (acessar) / 0008 (alterar)"}]},
+      {"titulo": "Control Net", "usuario": null, "senha": "2308", "observacao": "Manutenção e config. de fábrica. Variante citada: 2308, 2515 e 1213."},
+      {"titulo": "Aircon L1", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Manutenção", "valor": "11 e 12"}, {"nome": "Config. das entradas", "valor": "13"}, {"nome": "Zerar horas", "valor": "20"}]},
+      {"titulo": "SRP 3050 E", "usuario": null, "senha": "012", "observacao": ""},
+      {"titulo": "Outros códigos Schulz (módulos)", "usuario": null, "senha": "3040 / 0121", "observacao": ""}
+    ]
+  },
+  {
+    "slug": "compair",
+    "nome": "Compair",
+    "descricao": "Delcos (Pró/3000/3100/XL) e níveis de acesso.",
+    "itens": [
+      {"titulo": "Delcos Pró / Delcos 3000 e 3100", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Manutenção", "valor": "0111"}, {"nome": "Configurações", "valor": "3011"}, {"nome": "Manutenção (nível)", "valor": "3031"}]},
+      {"titulo": "Delcos XL", "usuario": null, "senha": "2222", "observacao": "Configurações: 2222. Níveis completos:", "codigos": [{"nome": "User (Nível 1)", "valor": "3031"}, {"nome": "Maintenance (Nível 2)", "valor": "3100"}, {"nome": "Technician (Nível 3)", "valor": "03011"}, {"nome": "Specialist (Nível 4)", "valor": "0111"}, {"nome": "Setup Code", "valor": "02222"}, {"nome": "Snapshot", "valor": "7123"}, {"nome": "Auto Restart", "valor": "8888"}, {"nome": "BLS Enable", "valor": "1234"}, {"nome": "Ext Speed Limiter", "valor": "09466"}, {"nome": "Alarm Logging", "valor": "50"}]},
+      {"titulo": "Códigos prompt / extras", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Código prompt 1", "valor": "1185"}, {"nome": "Código prompt 2", "valor": "1951"}, {"nome": "Código 3", "valor": "2210"}, {"nome": "Outros", "valor": "8888, 2222, 2345"}]}
     ]
   },
   {
@@ -155,74 +48,76 @@
     "nome": "Metalplan",
     "descricao": "Master Control (senhas calculadas pelo horímetro).",
     "itens": [
-      {"titulo": "Master Control 1 (Amarelo)", "usuario": null, "senha": null, "senha_ref": "metalplan/master-control-1-amarelo", "observacao": "Senha calculada com base em horas totais (fórmula).", "imagens": []},
-      {"titulo": "Master Control Carel (Azul - modelo novo)", "usuario": null, "senha": null, "senha_ref": "metalplan/master-control-carel-azul", "observacao": "Senha calculada com base nos 2 últimos dígitos do horímetro (fórmula).", "imagens": []}
+      {"titulo": "Master Control 1 (Amarelo)", "usuario": null, "senha": null, "observacao": "Config. de fábrica = (Horas Totais × 543 + 1); os 3 últimos dígitos do resultado são a senha. Ex.: 54210 × 543 + 1 = 29436031 → senha 031. Na tela de Config. de Fábrica, segure MENU e insira a senha com as setas."},
+      {"titulo": "Master Control Carel (Azul - modelo novo)", "usuario": null, "senha": null, "observacao": "Senha = (2 últimos dígitos do horímetro × 54 + 1); os 3 últimos dígitos do resultado. Ex.: 66 × 54 + 1 = 3565 → senha 565."}
     ]
   },
   {
-    "slug": "puma",
-    "nome": "Puma",
-    "descricao": "Controladores e painéis variados.",
+    "slug": "elgi",
+    "nome": "Elgi",
+    "descricao": "Neuron e variantes (Euro/EN/EG).",
     "itens": [
-      {"titulo": "Controlador Chinês MAM-870", "usuario": null, "senha": null, "senha_ref": "puma/mam-870", "observacao": "Código de configurações conforme material.", "imagens": []},
-      {"titulo": "EPS 4.2 Logic Controller", "usuario": null, "senha": null, "senha_ref": "puma/eps-4-2", "observacao": "Senha de acesso conforme material.", "imagens": []},
-      {"titulo": "PUMA PSR15", "usuario": null, "senha": "19", "senha_ref": "puma/psr15", "observacao": "", "imagens": []},
-      {"titulo": "Puma Man 860", "usuario": null, "senha": "0799, 0790, 0003, 0388", "senha_ref": "puma/man-860", "observacao": "", "imagens": []},
-      {"titulo": "Painel.Man 6070", "usuario": null, "senha": "0003, 5689, 1688, 5888, 1234, 5678, 5652", "senha_ref": "puma/painel-man-6070", "observacao": "", "imagens": []},
-      {"titulo": "Controlador Chinês MAM-220", "usuario": "9999", "senha": null, "senha_ref": "puma/mam-220", "observacao": "", "imagens": [], "codigos": [{"nome": "Configurações", "valor": "1120"}]}
+      {"titulo": "Neuron II", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Config. de fábrica", "valor": "2323"}, {"nome": "Manutenção / Serviços", "valor": "3434"}, {"nome": "Config. de operação", "valor": "4545"}]},
+      {"titulo": "Neuron GFB", "usuario": null, "senha": "0100 / 1688 / 1988", "observacao": ""},
+      {"titulo": "Elgi Euro", "usuario": null, "senha": "3434 / 3535 / 4545", "observacao": ""},
+      {"titulo": "Elgi EN", "usuario": null, "senha": "0009 / 0121", "observacao": ""},
+      {"titulo": "Elgi EG", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Senhas", "valor": "3434 / 4545"}, {"nome": "Senha de fábrica", "valor": "2323"}]}
     ]
   },
   {
-    "slug": "schulz",
-    "nome": "Schulz",
-    "descricao": "Control I/II/III, Control Net, Aircon e SRP.",
+    "slug": "fs-curtis",
+    "nome": "FS Curtis",
+    "descricao": "AIMS Plus (compressores SEM e SEG).",
     "itens": [
-      {"titulo": "Control I", "usuario": "121", "senha": "9", "senha_ref": "schulz/control-i-ii", "observacao": "Inclui manutenção/pressão, técnico e reset geral (quando aplicável).", "imagens": [], "codigos": [{"nome": "Acesso", "valor": "0009 e 0121"}]},
-      {"titulo": "Control II", "usuario": null, "senha": "0009, 0100 e 0121", "senha_ref": "schulz/control-ii", "observacao": "", "imagens": []},
-      {"titulo": "Control III", "usuario": "9999", "senha": null, "senha_ref": "schulz/control-iii", "observacao": "Separação por usuário / fábrica / calibração.", "imagens": [],
-        "codigos": [
-          {"nome": "Usuário", "valor": "9999"},
-          {"nome": "Fábrica", "valor": "entrar 1688 / parâmetro 0388"},
-          {"nome": "Calibração", "valor": "entrar 0002 / parâmetro 0008"}
-        ]},
-      {"titulo": "Control Net", "usuario": null, "senha": "2308, 2515 e 1213", "senha_ref": "schulz/control-net", "observacao": "Manutenção e configurações de fábrica.", "imagens": []},
-      {"titulo": "Aircon L1", "usuario": null, "senha": "011, 012 e 013", "senha_ref": "schulz/aircon-l1", "observacao": "Manutenção, configuração das entradas e zerar horas.", "imagens": []},
-      {"titulo": "SRP 3050E", "usuario": null, "senha": "012", "senha_ref": "schulz/srp-3050e", "observacao": "", "imagens": []},
-      {"titulo": "Outros códigos Schulz (geral)", "usuario": null, "senha": "3040 / 0121", "senha_ref": "schulz/geral", "observacao": "Senha geral e variações.", "imagens": []}
+      {"titulo": "AIMS Plus (SEM/SEG)", "usuario": null, "senha": "1111", "observacao": "Configurações: 1111.", "codigos": [{"nome": "Senha pré-programada", "valor": "123"}, {"nome": "Distribuidores (changeable)", "valor": "456"}, {"nome": "Senha de ajuste", "valor": "331"}, {"nome": "Tela em português", "valor": "104"}, {"nome": "Tela em inglês", "valor": "101"}, {"nome": "Limpar histórico de falhas", "valor": "201"}, {"nome": "Limpar histórico de alarmes", "valor": "202"}, {"nome": "Limpar alarme/serviço no painel", "valor": "301"}, {"nome": "Limpar desarme no painel", "valor": "302"}, {"nome": "Restaurar padrão de fábrica", "valor": "541"}]}
     ]
   },
   {
-    "slug": "scroll-outros",
-    "nome": "Scroll / Outros",
-    "descricao": "Entradas genéricas citadas no material.",
+    "slug": "gfb-neuron",
+    "nome": "GFB / Neuron",
+    "descricao": "Controlador Neuron/GFB.",
     "itens": [
-      {"titulo": "ControlNet 3 / relé sequência / falta de fase", "usuario": null, "senha": null, "senha_ref": "outros/controlnet-3", "observacao": "O relé de sequência e falta de fase deve estar conforme o manual.", "imagens": [],
-        "codigos": [
-          {"nome": "Parâmetro", "valor": "9999"},
-          {"nome": "Fábrica", "valor": "1688 + 0388"},
-          {"nome": "Calibração", "valor": "0002 ou 0008"}
-        ]},
-      {"titulo": "Scroll (geral)", "usuario": null, "senha": "2308, 2303, 5818", "senha_ref": "outros/scroll", "observacao": "", "imagens": [], "codigos": [{"nome": "Modo contínuo", "valor": "1988 ou 9999"}]},
-      {"titulo": "Scroll isento de óleo (2 estágios)", "usuario": "0100", "senha": "0119", "senha_ref": "outros/scroll-isento-oleo-2-estagios", "observacao": "Usuário 0100 / técnico 0119.", "imagens": []},
-      {"titulo": "ABCP", "usuario": null, "senha": "1988", "senha_ref": "outros/abcp", "observacao": "", "imagens": []},
-      {"titulo": "E75 Azul Ar Brasil", "usuario": null, "senha": "236 / 478 / 159", "senha_ref": "outros/e75-azul-ar-brasil", "observacao": "", "imagens": []},
-      {"titulo": "Senha de reset geral (reset de senha)", "usuario": null, "senha": "1503", "senha_ref": "outros/reset-geral", "observacao": "Código de reset geral de senha.", "imagens": []}
+      {"titulo": "Neuron / GFB (geral)", "usuario": "0100", "senha": "1688 / 1988", "observacao": "Neuron usuário 0100; senhas 1688 e 1988."}
     ]
   },
   {
-    "slug": "sullair",
-    "nome": "Sullair",
-    "descricao": "Supervisor II.",
+    "slug": "boge",
+    "nome": "Boge",
+    "descricao": "Focus Controller / Focus Basic.",
     "itens": [
-      {"titulo": "Supervisor II", "usuario": null, "senha": null, "senha_ref": "sullair/supervisor-ii", "observacao": "Sequências de teclas para configurações avançadas e destravamento (com cálculo).", "imagens": []}
+      {"titulo": "Focus Controller", "usuario": null, "senha": "15963", "observacao": "Senha de parâmetros."},
+      {"titulo": "Focus Basic", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Reset manutenção", "valor": "111 / 222 / 333"}, {"nome": "Alterar pressão", "valor": "360"}]}
     ]
   },
   {
-    "slug": "supreme-techto",
-    "nome": "Supreme Techto",
-    "descricao": "Controladores Supreme.",
+    "slug": "fiac",
+    "nome": "Fiac",
+    "descricao": "Configurações.",
     "itens": [
-      {"titulo": "Supreme Techto (geral)", "usuario": null, "senha": "2999", "senha_ref": "supreme-techto/geral", "observacao": "Senha principal.", "imagens": []}
+      {"titulo": "Controlador (geral)", "usuario": null, "senha": "3111", "observacao": "Configurações."}
+    ]
+  },
+  {
+    "slug": "coaire",
+    "nome": "Coaire",
+    "descricao": "Configurações e manutenção.",
+    "itens": [
+      {"titulo": "Controlador (geral)", "usuario": null, "senha": "0119", "observacao": "Configurações e manutenção."}
+    ]
+  },
+  {
+    "slug": "atlas-copco",
+    "nome": "Atlas Copco / Chicago Pneumatic",
+    "descricao": "Elektronikon (MK III/IV/V), ES 3000/4000/130 e inversores VSD.",
+    "itens": [
+      {"titulo": "Elektronikon e CP Tronic MK III", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "ARAVF (restart após falta de tensão)", "valor": "4735"}, {"nome": "Horas de funcionamento", "valor": "1807"}, {"nome": "Função DSS (Delay Second Stop)", "valor": "8244"}]},
+      {"titulo": "Elektronikon I – MK IV Std e MK V Std / CP Tronic", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Manutenção / sem senha ativa", "valor": "0000 / 1234"}, {"nome": "Parametrização", "valor": "1999"}, {"nome": "Partida Y-D (estrela-triângulo) / DOL", "valor": "3873"}]},
+      {"titulo": "Elektronikon II e III / CP Tronic MK IV", "usuario": null, "senha": null, "observacao": "Software FSP (acesso total): praha.", "codigos": [{"nome": "ARAVF", "valor": "4735"}, {"nome": "Horas de funcionamento", "valor": "1807"}, {"nome": "Função DSS / teste de válvula", "valor": "8244"}, {"nome": "Avanço manual BD100-300", "valor": "4735"}, {"nome": "Avanço manual BD260-3000", "valor": "2344"}]},
+      {"titulo": "Elektronikon MK V Graphic / ES 4000", "usuario": null, "senha": null, "observacao": "Também citado: 2123 e 2804. Software Modi5 (acesso total): WatchOut.", "codigos": [{"nome": "ARAVF", "valor": "4735"}, {"nome": "Reengraxe do motor (VSD)", "valor": "1807"}, {"nome": "Função DSS / teste de válvula", "valor": "8244"}, {"nome": "Acesso total - motor (nº de partidas)", "valor": "2801"}, {"nome": "Partida Y-D / DOL", "valor": "3873"}, {"nome": "Acesso - Service Level", "valor": "1304"}, {"nome": "Customer (cliente)", "valor": "2712"}]},
+      {"titulo": "ES 3000", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Configurações gerais", "valor": "1404"}, {"nome": "Alteração de pressão", "valor": "2712"}]},
+      {"titulo": "ES 4000 Basic / Elektronikon MK5 Basic", "usuario": null, "senha": null, "observacao": "Bloquear/Desbloquear: pressionar setas ↑ e ↓ simultaneamente por 5 s.", "codigos": [{"nome": "Configurações", "valor": "4321"}, {"nome": "Manutenção", "valor": "9989"}]},
+      {"titulo": "ES 130 (Gerenciador)", "usuario": null, "senha": "15", "observacao": "Acesso total."},
+      {"titulo": "Inversores WEG (linha VSD)", "usuario": null, "senha": null, "observacao": "", "codigos": [{"nome": "Senha WEG", "valor": "5"}, {"nome": "Senha Atlas Copco", "valor": "873"}]}
     ]
   },
   {
@@ -230,12 +125,82 @@
     "nome": "Techto",
     "descricao": "Controladores Techto.",
     "itens": [
-      {"titulo": "Techto (geral)", "usuario": "0130", "senha": null, "senha_ref": "techto/geral", "observacao": "Senha usuário, outras senhas e senha de configuração de fábrica.", "imagens": [],
-        "codigos": [
-          {"nome": "Senha", "valor": "6666"},
-          {"nome": "Senha", "valor": "0003"},
-          {"nome": "Config. de fábrica", "valor": "1688"}
-        ]}
+      {"titulo": "Techto (config. de fábrica)", "usuario": null, "senha": "1000", "observacao": "Configurações de fábrica."},
+      {"titulo": "Techto (AC Compressores)", "usuario": "0130", "senha": null, "observacao": "", "codigos": [{"nome": "Senha", "valor": "6666"}, {"nome": "Senha", "valor": "0003"}, {"nome": "Config. de fábrica", "valor": "1688"}]}
+    ]
+  },
+  {
+    "slug": "supreme-techto",
+    "nome": "Supreme Techto",
+    "descricao": "Controladores Supreme.",
+    "itens": [
+      {"titulo": "Supreme Techto (geral)", "usuario": null, "senha": "2999", "observacao": "Senha principal."}
+    ]
+  },
+  {
+    "slug": "sullair",
+    "nome": "Sullair",
+    "descricao": "Supervisor II.",
+    "itens": [
+      {"titulo": "Supervisor II", "usuario": null, "senha": null, "observacao": "Config. avançadas: sequência *°° (logo), seta ↑, DSP, seta ↓, PRG. Destravamento: *°° (logo), PRG → aparece um número (ex.: PROTECT 149). Calcular nº × 2 + 3 (ex.: 149 × 2 + 3 = 301) e inserir na tela."}
+    ]
+  },
+  {
+    "slug": "puma",
+    "nome": "Puma",
+    "descricao": "Controladores e painéis variados.",
+    "itens": [
+      {"titulo": "Controlador Chinês MAM-870", "usuario": null, "senha": "5588", "observacao": "Configurações."},
+      {"titulo": "EPS 4.2 Logic Controller", "usuario": null, "senha": "19", "observacao": ""},
+      {"titulo": "PUMA PSR15", "usuario": null, "senha": "19", "observacao": ""},
+      {"titulo": "Puma Man 860", "usuario": null, "senha": "0799, 0790, 0003, 0388", "observacao": ""},
+      {"titulo": "Painel.Man 6070", "usuario": null, "senha": "0003, 5689, 1688, 5888, 1234, 5678, 5652", "observacao": ""},
+      {"titulo": "Controlador Chinês MAM-220", "usuario": "9999", "senha": null, "observacao": "", "codigos": [{"nome": "Configurações", "valor": "1120"}]}
+    ]
+  },
+  {
+    "slug": "august",
+    "nome": "August",
+    "descricao": "Controlador MAM 680 (chinês).",
+    "itens": [
+      {"titulo": "Controlador MAM 680 (Chinês)", "usuario": null, "senha": "2517 / 6572 / 5682 / 8381 / 2357 / 2572", "observacao": ""}
+    ]
+  },
+  {
+    "slug": "jaguar",
+    "nome": "Jaguar",
+    "descricao": "Controlador chinês MAM.",
+    "itens": [
+      {"titulo": "Controlador Chinês MAM", "usuario": null, "senha": "6693", "observacao": "Configurações."}
+    ]
+  },
+  {
+    "slug": "bumatec",
+    "nome": "Bumatec",
+    "descricao": "Configurações e manutenção.",
+    "itens": [
+      {"titulo": "Controlador (geral)", "usuario": null, "senha": "1688 / 1988", "observacao": "Configurações e manutenção."}
+    ]
+  },
+  {
+    "slug": "hydrovane",
+    "nome": "Hydrovane",
+    "descricao": "Hydrovane Pro.",
+    "itens": [
+      {"titulo": "Hydrovane Pro", "usuario": null, "senha": null, "observacao": "Idioma: Enter + seta ↓ (segurar Enter e usar as setas). Acessar menus: setas ↑ e ↓ simultaneamente.", "codigos": [{"nome": "Reset dos parâmetros", "valor": "2222"}, {"nome": "Serviços", "valor": "0647"}, {"nome": "Rotação Off (opcional)", "valor": "9998"}, {"nome": "Rotação On (opcional)", "valor": "9997"}, {"nome": "Falha falta de energia", "valor": "8888"}]}
+    ]
+  },
+  {
+    "slug": "scroll-outros",
+    "nome": "Scroll / Outros",
+    "descricao": "ControlNet 3, Scroll, ABCP, E75 e reset geral.",
+    "itens": [
+      {"titulo": "ControlNet 3 / relé sequência / falta de fase", "usuario": null, "senha": null, "observacao": "O relé de sequência e falta de fase deve estar conforme o manual.", "codigos": [{"nome": "Parâmetro", "valor": "9999"}, {"nome": "Fábrica", "valor": "1688 + 0388"}, {"nome": "Calibração", "valor": "0002 ou 0008"}]},
+      {"titulo": "Scroll (geral)", "usuario": null, "senha": "2308, 2303, 5818", "observacao": "", "codigos": [{"nome": "Modo contínuo", "valor": "1988 ou 9999"}]},
+      {"titulo": "Scroll isento de óleo (2 estágios)", "usuario": "0100", "senha": "0119", "observacao": "Usuário 0100 / técnico 0119."},
+      {"titulo": "ABCP", "usuario": null, "senha": "1988", "observacao": ""},
+      {"titulo": "E75 Azul Ar Brasil", "usuario": null, "senha": "236 / 478 / 159", "observacao": ""},
+      {"titulo": "Senha de reset geral (reset de senha)", "usuario": null, "senha": "1503", "observacao": "Código de reset geral de senha."}
     ]
   }
 ]
