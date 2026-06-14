@@ -17,8 +17,8 @@ import java.util.UUID
 object Arquivos {
 
     /** Lado maior máximo (px) das fotos após compressão. */
-    private const val LADO_MAXIMO = 1600
-    private const val QUALIDADE_JPEG = 80
+    private const val LADO_MAXIMO = 2200
+    private const val QUALIDADE_JPEG = 92
 
     fun pastaFotos(context: Context): File =
         File(context.filesDir, "fotos").apply { mkdirs() }

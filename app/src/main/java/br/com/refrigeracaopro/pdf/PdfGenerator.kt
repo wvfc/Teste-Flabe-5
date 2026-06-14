@@ -59,6 +59,8 @@ object PdfGenerator {
         val fundoSecao = Paint().apply { color = AZUL_ESCURO }
         val fundoLinha = Paint().apply { color = CINZA_CLARO }
         val linhaPaint = Paint().apply { color = VERDE; strokeWidth = 2f }
+        // Filtragem para imagens ficarem suaves (sem serrilhado) ao redimensionar
+        val imgPaint = Paint().apply { isFilterBitmap = true; isAntiAlias = true; isDither = true }
 
         fun novaPagina(): PdfDocument.Page {
             val info = PdfDocument.PageInfo.Builder(LARGURA, ALTURA, 1).create()
@@ -96,7 +98,7 @@ object PdfGenerator {
                         MARGEM.toInt(), y.toInt(),
                         (MARGEM + logo.width * proporcao).toInt(), (y + alvo).toInt()
                     )
-                    canvas().drawBitmap(logo, null, destino, null)
+                    canvas().drawBitmap(logo, null, destino, imgPaint)
                     xTexto = destino.right + 12f
                 }
             }
@@ -171,19 +173,59 @@ object PdfGenerator {
             y += 4f
         }
 
-        /** Tabela simples de duas colunas (medição / valor) com linhas zebradas. */
+        /** Quebra um texto em linhas que cabem em [larguraMax] para o [paint]. */
+        fun quebrar(texto: String, larguraMax: Float, paint: Paint): List<String> {
+            if (texto.isBlank()) return listOf("")
+            val linhas = mutableListOf<String>()
+            texto.split("\n").forEach { bruta ->
+                var restante = bruta.trim()
+                if (restante.isEmpty()) { linhas.add(""); return@forEach }
+                while (restante.isNotEmpty()) {
+                    var corte = restante.length
+                    while (corte > 1 && paint.measureText(restante.substring(0, corte)) > larguraMax) {
+                        val espaco = restante.lastIndexOf(' ', corte - 1)
+                        corte = if (espaco > 0) espaco else corte - 1
+                    }
+                    linhas.add(restante.substring(0, corte).trim())
+                    restante = restante.substring(corte).trim()
+                }
+            }
+            return linhas
+        }
+
+        /** Tabela de duas colunas (medição / valor) com quebra de texto e zebra. */
         fun tabela(linhas: List<Pair<String, String>>) {
             val visiveis = linhas.filter { it.second.isNotBlank() }
             if (visiveis.isEmpty()) return
-            val colValor = LARGURA / 2f + 40f
+            val colValor = MARGEM + (LARGURA - 2 * MARGEM) * 0.54f
+            val largRotulo = colValor - (MARGEM + 6f) - 8f
+            val largValor = (LARGURA - MARGEM) - colValor - 4f
+            val alturaLinha = 13f
             visiveis.forEachIndexed { indice, (rotulo, valor) ->
-                garantirEspaco(18f)
-                if (indice % 2 == 0) canvas().drawRect(MARGEM, y - 11f, LARGURA - MARGEM, y + 5f, fundoLinha)
-                canvas().drawText(rotulo, MARGEM + 6f, y, textoPaint)
-                canvas().drawText(valor, colValor, y, textoPaint)
-                y += 17f
+                val lr = quebrar(rotulo, largRotulo, textoPaint)
+                val lv = quebrar(valor, largValor, textoPaint)
+                val n = maxOf(lr.size, lv.size)
+                val alturaRow = n * alturaLinha + 6f
+                garantirEspaco(alturaRow)
+                if (indice % 2 == 0) canvas().drawRect(MARGEM, y - 10f, LARGURA - MARGEM, y - 10f + alturaRow, fundoLinha)
+                lr.forEachIndexed { i, l -> canvas().drawText(l, MARGEM + 6f, y + i * alturaLinha, textoPaint) }
+                lv.forEachIndexed { i, l -> canvas().drawText(l, colValor, y + i * alturaLinha, textoPaint) }
+                y += alturaRow
             }
             y += 6f
+        }
+
+        /** Desenha a foto dentro da célula preservando a proporção (sem distorcer). */
+        fun desenharFoto(caminho: String, x: Float, yTopo: Float, larguraCelula: Float, alturaCelula: Float) {
+            val bmp = BitmapFactory.decodeFile(caminho) ?: return
+            val ratio = minOf(larguraCelula / bmp.width, alturaCelula / bmp.height)
+            val w = bmp.width * ratio
+            val h = bmp.height * ratio
+            val dx = x + (larguraCelula - w) / 2f
+            val dy = yTopo + (alturaCelula - h) / 2f
+            val destino = Rect(dx.toInt(), dy.toInt(), (dx + w).toInt(), (dy + h).toInt())
+            canvas().drawBitmap(bmp, null, destino, imgPaint)
+            bmp.recycle()
         }
 
         /** Grade de fotos (2 por linha). */
@@ -198,12 +240,7 @@ object PdfGenerator {
                 garantirEspaco(alturaFoto + 10f)
                 for (col in 0..1) {
                     if (i + col >= existentes.size) break
-                    BitmapFactory.decodeFile(existentes[i + col])?.let { bmp ->
-                        val x = MARGEM + col * (larguraFoto + 12f)
-                        val destino = Rect(x.toInt(), y.toInt(), (x + larguraFoto).toInt(), (y + alturaFoto).toInt())
-                        canvas().drawBitmap(bmp, null, destino, null)
-                        bmp.recycle()
-                    }
+                    desenharFoto(existentes[i + col], MARGEM + col * (larguraFoto + 12f), y, larguraFoto, alturaFoto)
                 }
                 y += alturaFoto + 10f
                 i += 2
@@ -221,7 +258,7 @@ object PdfGenerator {
                 if (caminho.isNotBlank() && File(caminho).exists()) {
                     BitmapFactory.decodeFile(caminho)?.let { bmp ->
                         val destino = Rect(x.toInt(), y.toInt(), (x + largura).toInt(), (y + 50f).toInt())
-                        canvas().drawBitmap(bmp, null, destino, null)
+                        canvas().drawBitmap(bmp, null, destino, imgPaint)
                         bmp.recycle()
                     }
                 }
@@ -244,12 +281,7 @@ object PdfGenerator {
                 garantirEspaco(alturaFoto + 34f)
                 val linha = existentes.subList(i, minOf(i + 2, existentes.size))
                 linha.forEachIndexed { col, (caminho, _) ->
-                    BitmapFactory.decodeFile(caminho)?.let { bmp ->
-                        val x = MARGEM + col * (larguraFoto + 12f)
-                        val destino = Rect(x.toInt(), y.toInt(), (x + larguraFoto).toInt(), (y + alturaFoto).toInt())
-                        canvas().drawBitmap(bmp, null, destino, null)
-                        bmp.recycle()
-                    }
+                    desenharFoto(caminho, MARGEM + col * (larguraFoto + 12f), y, larguraFoto, alturaFoto)
                 }
                 // Legendas abaixo
                 val yLegenda = y + alturaFoto + 11f
