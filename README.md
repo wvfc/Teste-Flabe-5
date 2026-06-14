@@ -43,6 +43,18 @@ Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e
 ### Fotos
 As fotos (equipamentos, OS e relatórios) são adicionadas **pela galeria**. As imagens são copiadas para o armazenamento interno, têm a rotação corrigida (EXIF) e são **comprimidas** antes de salvar/exportar.
 
+### Organização (dashboard)
+O painel principal agrupa os módulos: **Cadastros** (clientes, equipamentos, serviços), Ordens de Serviço, **Relatórios**, Agendamentos, **Ferramentas** (consulta de gases, cálculos, motores/compressores, comparar componentes, conversor de unidades, buscar manual), Gestão Financeira, Assistente IA e Configurações.
+
+### Tipos de relatório
+Ao criar um relatório, escolhe-se entre três tipos:
+1. **Técnico de refrigeração** — completo (pressões, temperaturas, superaquecimento/subresfriamento, diagnóstico IA).
+2. **Compressor de ar comprimido** — checklist de inspeção (horímetro, óleo, mecânica, elétrica, pressões e temperaturas), baseado no modelo do fabricante.
+3. **Geral (simples)** — dados, serviços, recomendações, fotos e assinaturas.
+
+### Clientes — importar/exportar
+Na tela de Clientes há botões para **exportar** todos os clientes em **CSV** (compartilhável) e **importar** clientes de um arquivo CSV.
+
 ### Login e sessão
 O acesso principal é **direto pela conta Google** (que de quebra já concede o escopo de backup no Drive). Há ainda um **login local opcional** (offline) com usuário/senha. Após o primeiro login, a sessão fica ativa e o app **não pede login novamente** ao reabrir.
 

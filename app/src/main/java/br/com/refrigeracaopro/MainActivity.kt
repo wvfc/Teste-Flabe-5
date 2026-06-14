@@ -18,6 +18,7 @@ import androidx.navigation.navArgument
 import br.com.refrigeracaopro.data.Prefs.sessaoAtiva
 import br.com.refrigeracaopro.ui.screens.AgendamentosScreen
 import br.com.refrigeracaopro.ui.screens.AssistenteIAScreen
+import br.com.refrigeracaopro.ui.screens.CadastrosScreen
 import br.com.refrigeracaopro.ui.screens.CalculosScreen
 import br.com.refrigeracaopro.ui.screens.ClienteFormScreen
 import br.com.refrigeracaopro.ui.screens.ClientesScreen
@@ -26,6 +27,7 @@ import br.com.refrigeracaopro.ui.screens.CompressoresScreen
 import br.com.refrigeracaopro.ui.screens.ConfiguracoesScreen
 import br.com.refrigeracaopro.ui.screens.ConversorScreen
 import br.com.refrigeracaopro.ui.screens.DashboardScreen
+import br.com.refrigeracaopro.ui.screens.FerramentasScreen
 import br.com.refrigeracaopro.ui.screens.GestaoScreen
 import br.com.refrigeracaopro.ui.screens.ManuaisScreen
 import br.com.refrigeracaopro.ui.screens.EquipamentoFormScreen
@@ -34,6 +36,7 @@ import br.com.refrigeracaopro.ui.screens.GasesScreen
 import br.com.refrigeracaopro.ui.screens.LoginScreen
 import br.com.refrigeracaopro.ui.screens.OrdemServicoFormScreen
 import br.com.refrigeracaopro.ui.screens.OrdensServicoScreen
+import br.com.refrigeracaopro.ui.screens.RelatorioArComprimidoFormScreen
 import br.com.refrigeracaopro.ui.screens.RelatorioFormScreen
 import br.com.refrigeracaopro.ui.screens.RelatoriosScreen
 import br.com.refrigeracaopro.ui.screens.ServicosScreen
@@ -67,6 +70,8 @@ class MainActivity : ComponentActivity() {
                 } else {
                     NavHost(navController = nav, startDestination = "dashboard") {
                         composable("dashboard") { DashboardScreen(nav) }
+                        composable("cadastros") { CadastrosScreen(nav) }
+                        composable("ferramentas") { FerramentasScreen(nav) }
 
                         composable("clientes") { ClientesScreen(nav) }
                         composable(
@@ -110,17 +115,25 @@ class MainActivity : ComponentActivity() {
 
                         composable("relatorios") { RelatoriosScreen(nav) }
                         composable(
-                            "relatorios/form?id={id}&osId={osId}",
+                            "relatorios/form?id={id}&osId={osId}&tipo={tipo}",
                             arguments = listOf(
                                 navArgument("id") { type = NavType.LongType; defaultValue = 0L },
                                 navArgument("osId") { type = NavType.LongType; defaultValue = 0L },
+                                navArgument("tipo") { type = NavType.StringType; defaultValue = "refrigeracao" },
                             )
                         ) {
                             RelatorioFormScreen(
                                 nav,
                                 it.arguments?.getLong("id") ?: 0L,
                                 it.arguments?.getLong("osId") ?: 0L,
+                                it.arguments?.getString("tipo") ?: "refrigeracao",
                             )
+                        }
+                        composable(
+                            "relatorios/arcomp?id={id}",
+                            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = 0L })
+                        ) {
+                            RelatorioArComprimidoFormScreen(nav, it.arguments?.getLong("id") ?: 0L)
                         }
 
                         composable("agendamentos") { AgendamentosScreen(nav) }

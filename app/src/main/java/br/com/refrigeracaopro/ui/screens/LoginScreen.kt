@@ -103,7 +103,7 @@ fun LoginScreen(aoEntrar: () -> Unit, vm: LoginViewModel = viewModel()) {
     ) {
         Icon(Icons.Default.AcUnit, null, tint = Verde, modifier = Modifier.size(72.dp))
         Text(
-            "Refrigeração Pro",
+            "Gestão Pro",
             style = MaterialTheme.typography.headlineMedium,
             color = androidx.compose.ui.graphics.Color.White,
             fontWeight = FontWeight.Bold

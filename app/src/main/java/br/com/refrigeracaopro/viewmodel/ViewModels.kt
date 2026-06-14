@@ -130,6 +130,23 @@ class ClientesViewModel(app: Application) : AndroidViewModel(app) {
     fun equipamentosDe(clienteId: Long) = db().equipamentoDao().listarPorCliente(clienteId)
 
     fun historicoDe(clienteId: Long) = db().ordemServicoDao().listarPorCliente(clienteId)
+
+    /** Exporta todos os clientes (independente do filtro de busca) em CSV. */
+    fun exportarCsv(aoPronto: (String) -> Unit) {
+        viewModelScope.launch {
+            val todos = dao.listar().first()
+            aoPronto(br.com.refrigeracaopro.util.CsvClientes.exportar(todos))
+        }
+    }
+
+    /** Importa clientes de um CSV; retorna a quantidade inserida. */
+    fun importarCsv(conteudo: String, aoConcluir: (Int) -> Unit) {
+        viewModelScope.launch {
+            val lista = br.com.refrigeracaopro.util.CsvClientes.importar(conteudo)
+            lista.forEach { dao.salvar(it) }
+            aoConcluir(lista.size)
+        }
+    }
 }
 
 // ---------- Equipamentos ----------

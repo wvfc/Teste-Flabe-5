@@ -1,5 +1,9 @@
 package br.com.refrigeracaopro.ui.screens
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,8 +18,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
@@ -34,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -44,8 +51,10 @@ import br.com.refrigeracaopro.ui.components.CampoTexto
 import br.com.refrigeracaopro.ui.components.ConfirmarExclusao
 import br.com.refrigeracaopro.ui.components.TelaBase
 import br.com.refrigeracaopro.ui.components.TituloSecao
+import br.com.refrigeracaopro.util.Arquivos
 import br.com.refrigeracaopro.viewmodel.ClientesViewModel
 import kotlinx.coroutines.flow.flowOf
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,11 +62,39 @@ import java.util.Locale
 /** Lista de clientes com pesquisa, edição e exclusão. */
 @Composable
 fun ClientesScreen(nav: NavController, vm: ClientesViewModel = viewModel()) {
+    val context = LocalContext.current
     val clientes by vm.clientes.collectAsState()
     val busca by vm.busca.collectAsState()
     var excluir by remember { mutableStateOf<Cliente?>(null) }
 
-    TelaBase(nav, "Clientes", aoAdicionar = { nav.navigate("clientes/form?id=0") }) { padding ->
+    // Importar clientes de um CSV escolhido pelo usuário
+    val importar = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) {
+            val conteudo = runCatching {
+                context.contentResolver.openInputStream(uri)!!.use { it.bufferedReader().readText() }
+            }.getOrNull()
+            if (conteudo != null) vm.importarCsv(conteudo) { n ->
+                Toast.makeText(context, "$n cliente(s) importado(s).", Toast.LENGTH_LONG).show()
+            } else Toast.makeText(context, "Não foi possível ler o arquivo.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    TelaBase(
+        nav, "Clientes",
+        aoAdicionar = { nav.navigate("clientes/form?id=0") },
+        acoes = {
+            IconButton(onClick = {
+                vm.exportarCsv { csv ->
+                    val arquivo = File(Arquivos.pastaPdfs(context), "clientes.csv")
+                    arquivo.writeText(csv)
+                    Arquivos.compartilhar(context, arquivo, "text/csv", "Clientes (CSV)")
+                }
+            }) { Icon(Icons.Default.Upload, "Exportar clientes") }
+            IconButton(onClick = { importar.launch("*/*") }) {
+                Icon(Icons.Default.Download, "Importar clientes")
+            }
+        }
+    ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             OutlinedTextField(
                 value = busca,

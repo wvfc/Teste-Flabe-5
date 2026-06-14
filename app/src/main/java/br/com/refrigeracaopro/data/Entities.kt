@@ -126,6 +126,8 @@ data class Relatorio(
     val clienteId: Long,
     val equipamentoId: Long? = null,
     val ordemServicoId: Long? = null, // quando gerado a partir de uma OS
+    val tipo: String = TipoRelatorio.REFRIGERACAO, // tipo do relatório
+    val dadosExtra: String = "", // campos do checklist (JSON) p/ relatório de ar comprimido
     val motivoVisita: String = "",
     val diagnostico: String = "",
     val diagnosticoIA: String = "", // sugestão de diagnóstico gerada pela IA
@@ -176,6 +178,13 @@ data class Agendamento(
 object Periodicidade {
     const val UNICA = "Única"
     val TODAS = listOf(UNICA, "Semanal", "Mensal", "Trimestral", "Semestral", "Anual")
+}
+
+object TipoRelatorio {
+    const val REFRIGERACAO = "Refrigeração"
+    const val AR_COMPRIMIDO = "Ar comprimido"
+    const val GERAL = "Geral"
+    val TODOS = listOf(REFRIGERACAO, AR_COMPRIMIDO, GERAL)
 }
 
 object StatusAgendamento {

@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -74,26 +75,36 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Lista de relatórios técnicos. */
+/** Abre o formulário correto conforme o tipo do relatório. */
+private fun abrirRelatorio(nav: NavController, id: Long, tipo: String) {
+    when (tipo) {
+        br.com.refrigeracaopro.data.TipoRelatorio.AR_COMPRIMIDO -> nav.navigate("relatorios/arcomp?id=$id")
+        br.com.refrigeracaopro.data.TipoRelatorio.GERAL -> nav.navigate("relatorios/form?id=$id&osId=0&tipo=geral")
+        else -> nav.navigate("relatorios/form?id=$id&osId=0&tipo=refrigeracao")
+    }
+}
+
+/** Lista de relatórios, com escolha do tipo ao criar um novo. */
 @Composable
 fun RelatoriosScreen(nav: NavController, vm: RelatoriosViewModel = viewModel()) {
     val relatorios by vm.relatorios.collectAsState()
     val clientes by vm.clientes.collectAsState()
     var excluir by remember { mutableStateOf<Relatorio?>(null) }
+    var escolherTipo by remember { mutableStateOf(false) }
     val formatoData = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")) }
 
-    TelaBase(nav, "Relatórios técnicos", aoAdicionar = { nav.navigate("relatorios/form?id=0") }) { padding ->
+    TelaBase(nav, "Relatórios", aoAdicionar = { escolherTipo = true }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             items(relatorios, key = { it.id }) { rel ->
                 val nomeCliente = clientes.find { it.id == rel.clienteId }?.nome ?: "—"
                 Card(
-                    onClick = { nav.navigate("relatorios/form?id=${rel.id}") },
+                    onClick = { abrirRelatorio(nav, rel.id, rel.tipo) },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                 ) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("${rel.numero} • $nomeCliente", fontWeight = FontWeight.Bold)
-                            Text(formatoData.format(Date(rel.dataHora)),
+                            Text("${rel.tipo} • ${formatoData.format(Date(rel.dataHora))}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -106,6 +117,30 @@ fun RelatoriosScreen(nav: NavController, vm: RelatoriosViewModel = viewModel()) 
         }
     }
 
+    if (escolherTipo) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { escolherTipo = false },
+            title = { Text("Novo relatório") },
+            text = {
+                Column {
+                    Text("Escolha o tipo de relatório:", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(8.dp))
+                    OpcaoTipo("Técnico de refrigeração", "Pressões, temperaturas, superaquecimento/subresfriamento e diagnóstico IA.") {
+                        escolherTipo = false; nav.navigate("relatorios/form?id=0&osId=0&tipo=refrigeracao")
+                    }
+                    OpcaoTipo("Compressor de ar comprimido", "Checklist de inspeção (horímetro, óleo, elétrica, pressões e temperaturas).") {
+                        escolherTipo = false; nav.navigate("relatorios/arcomp?id=0")
+                    }
+                    OpcaoTipo("Geral (simples)", "Relatório enxuto: dados, serviços, recomendações, fotos e assinaturas.") {
+                        escolherTipo = false; nav.navigate("relatorios/form?id=0&osId=0&tipo=geral")
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { escolherTipo = false }) { Text("Cancelar") } }
+        )
+    }
+
     excluir?.let { rel ->
         ConfirmarExclusao(
             "Excluir o relatório ${rel.numero}?",
@@ -115,16 +150,37 @@ fun RelatoriosScreen(nav: NavController, vm: RelatoriosViewModel = viewModel()) 
     }
 }
 
+@Composable
+private fun OpcaoTipo(titulo: String, descricao: String, onClick: () -> Unit) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Column(Modifier.padding(12.dp)) {
+            Text(titulo, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            Text(descricao, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
 /**
  * Formulário do relatório técnico completo: dados, medições, cálculo automático
  * de superaquecimento/subresfriamento, sugestão de IA, fotos, assinaturas e PDF.
  */
 @Composable
-fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, vm: RelatoriosViewModel = viewModel()) {
+fun RelatorioFormScreen(
+    nav: NavController,
+    relatorioId: Long,
+    osId: Long = 0L,
+    tipoArg: String = "refrigeracao",
+    vm: RelatoriosViewModel = viewModel(),
+) {
     val context = LocalContext.current
     val escopo = rememberCoroutineScope()
     val clientes by vm.clientes.collectAsState()
     val equipamentos by vm.equipamentos.collectAsState()
+    // "refrigeracao" (completo) ou "geral" (simples)
+    val refrig = tipoArg != "geral"
+    val tipoRelatorio = if (refrig) br.com.refrigeracaopro.data.TipoRelatorio.REFRIGERACAO
+        else br.com.refrigeracaopro.data.TipoRelatorio.GERAL
 
     var original by remember { mutableStateOf<Relatorio?>(null) }
     var numero by remember { mutableStateOf("") }
@@ -221,6 +277,7 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
 
     fun montar(): Relatorio = (original ?: Relatorio(numero = numero, clienteId = clienteId)).copy(
         numero = numero, clienteId = clienteId, equipamentoId = equipamentoId, ordemServicoId = ordemServicoId,
+        tipo = tipoRelatorio,
         motivoVisita = motivo, diagnostico = diagnostico, correnteEletrica = corrente, tensaoEletrica = tensao,
         pressaoSuccao = pSuccao, pressaoDescarga = pDescarga, tempLinhaSuccao = tSuccao, tempLinhaLiquido = tLiquido,
         tempAmbiente = tAmbiente, tempInterna = tInterna, fluido = fluido, tempEvaporacao = tEvap, tempCondensacao = tCond,
@@ -264,7 +321,14 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
         }
     }
 
-    val abas = listOf("Medições", "Diagnóstico IA", "Fotos", "Peças/Serviços", "Recomendações", "Manual", "Conclusão", "Assinaturas")
+    // No relatório "geral" (simples) ocultamos medições, diagnóstico IA e manual
+    val abas = buildList {
+        add("Dados")
+        if (refrig) add("Diagnóstico IA")
+        add("Fotos"); add("Peças/Serviços"); add("Recomendações")
+        if (refrig) add("Manual")
+        add("Conclusão"); add("Assinaturas")
+    }
 
     TelaBase(nav, if (relatorioId > 0) numero else "Novo relatório") { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -298,12 +362,13 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)
             ) {
-                when (aba) {
-                    0 -> {
+                when (abas.getOrElse(aba.coerceIn(0, abas.lastIndex)) { abas.first() }) {
+                    "Dados" -> {
                         TituloSecao("Motivo e diagnóstico")
                         CampoTexto(motivo, { motivo = it }, "Motivo da visita", linhas = 2)
                         CampoTexto(diagnostico, { diagnostico = it }, "Diagnóstico", linhas = 3)
 
+                        if (refrig) {
                         TituloSecao("Medições elétricas")
                         Row {
                             CampoTexto(corrente, { corrente = it }, "Corrente (A)", modifier = Modifier.weight(1f).padding(end = 4.dp),
@@ -354,8 +419,9 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
                                 }
                             }
                         }
+                        } // fim das medições (somente refrigeração)
                     }
-                    1 -> {
+                    "Diagnóstico IA" -> {
                         TituloSecao("Diagnóstico assistido por IA")
                         Text("Gera diagnóstico provável, causas, testes, riscos, correção, segurança e grau de confiança, " +
                             "usando as medições e a base técnica interna.",
@@ -367,7 +433,7 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
                         }
                         CampoTexto(diagnosticoIA, { diagnosticoIA = it }, "Diagnóstico da IA (editável)", linhas = 10)
                     }
-                    2 -> {
+                    "Fotos" -> {
                         TituloSecao("Fotos antes")
                         SecaoFotos("Antes", fotosAntes) { fotosAntes = it }
                         TituloSecao("Fotos durante")
@@ -375,16 +441,16 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
                         TituloSecao("Fotos depois")
                         SecaoFotos("Depois", fotosDepois) { fotosDepois = it }
                     }
-                    3 -> {
+                    "Peças/Serviços" -> {
                         TituloSecao("Peças e serviços")
                         CampoTexto(servicos, { servicos = it }, "Serviços realizados", linhas = 3)
                         CampoTexto(pecas, { pecas = it }, "Peças substituídas", linhas = 3)
                     }
-                    4 -> {
+                    "Recomendações" -> {
                         TituloSecao("Recomendações técnicas")
                         CampoTexto(recomendacoes, { recomendacoes = it }, "Recomendações", linhas = 5)
                     }
-                    5 -> {
+                    "Manual" -> {
                         TituloSecao("Manual anexado")
                         if (manualAnexado.isNotBlank() && File(manualAnexado).exists()) {
                             Card(onClick = { Arquivos.abrirPdf(context, File(manualAnexado)) }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -410,7 +476,7 @@ fun RelatorioFormScreen(nav: NavController, relatorioId: Long, osId: Long = 0L, 
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp))
                     }
-                    6 -> {
+                    "Conclusão" -> {
                         TituloSecao("Conclusão técnica")
                         CampoTexto(conclusao, { conclusao = it }, "Conclusão", linhas = 5)
                         OutlinedButton(

@@ -100,7 +100,7 @@ object PdfGenerator {
                     xTexto = destino.right + 12f
                 }
             }
-            val empresa = context.nomeEmpresa.ifBlank { "Refrigeração Pro" }
+            val empresa = context.nomeEmpresa.ifBlank { "Gestão Pro" }
             canvas().drawText(empresa, xTexto, y + 16f, tituloPaint)
             val linhas = listOfNotNull(
                 context.cnpjEmpresa.takeIf { it.isNotBlank() }?.let { "CNPJ: $it" },
@@ -268,7 +268,7 @@ object PdfGenerator {
         equipamento: Equipamento?,
     ): File {
         val doc = PdfDocument()
-        val rodape = "Gerado por Refrigeração Pro em ${formatoData.format(Date())}"
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
         val b = Construtor(context, doc, rodape)
 
         b.cabecalho("ORDEM DE SERVIÇO", os.numero)
@@ -331,7 +331,7 @@ object PdfGenerator {
         equipamento: Equipamento?,
     ): File {
         val doc = PdfDocument()
-        val rodape = "Gerado por Refrigeração Pro em ${formatoData.format(Date())}"
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
         val b = Construtor(context, doc, rodape)
 
         b.cabecalho("RELATÓRIO TÉCNICO", rel.numero)
@@ -356,24 +356,27 @@ object PdfGenerator {
         if (rel.motivoVisita.isNotBlank()) { b.secao("Motivo da visita"); b.paragrafo(rel.motivoVisita) }
         if (rel.diagnostico.isNotBlank()) { b.secao("Diagnóstico"); b.paragrafo(rel.diagnostico) }
 
-        b.secao("Medições")
-        b.tabela(
-            listOf(
-                "Fluido refrigerante" to rel.fluido,
-                "Pressão de sucção" to rel.pressaoSuccao.comUnidade("psi"),
-                "Pressão de descarga" to rel.pressaoDescarga.comUnidade("psi"),
-                "Temperatura linha de sucção" to rel.tempLinhaSuccao.comUnidade("°C"),
-                "Temperatura linha de líquido" to rel.tempLinhaLiquido.comUnidade("°C"),
-                "Temperatura ambiente" to rel.tempAmbiente.comUnidade("°C"),
-                "Temperatura interna" to rel.tempInterna.comUnidade("°C"),
-                "Temperatura de evaporação" to rel.tempEvaporacao.comUnidade("°C"),
-                "Temperatura de condensação" to rel.tempCondensacao.comUnidade("°C"),
-                "Corrente elétrica" to rel.correnteEletrica.comUnidade("A"),
-                "Tensão elétrica" to rel.tensaoEletrica.comUnidade("V"),
-                "SUPERAQUECIMENTO" to rel.superaquecimento.comUnidade("K"),
-                "SUBRESFRIAMENTO" to rel.subresfriamento.comUnidade("K"),
+        // Medições técnicas só no relatório de refrigeração (o "Geral" é simples)
+        if (rel.tipo == br.com.refrigeracaopro.data.TipoRelatorio.REFRIGERACAO) {
+            b.secao("Medições")
+            b.tabela(
+                listOf(
+                    "Fluido refrigerante" to rel.fluido,
+                    "Pressão de sucção" to rel.pressaoSuccao.comUnidade("psi"),
+                    "Pressão de descarga" to rel.pressaoDescarga.comUnidade("psi"),
+                    "Temperatura linha de sucção" to rel.tempLinhaSuccao.comUnidade("°C"),
+                    "Temperatura linha de líquido" to rel.tempLinhaLiquido.comUnidade("°C"),
+                    "Temperatura ambiente" to rel.tempAmbiente.comUnidade("°C"),
+                    "Temperatura interna" to rel.tempInterna.comUnidade("°C"),
+                    "Temperatura de evaporação" to rel.tempEvaporacao.comUnidade("°C"),
+                    "Temperatura de condensação" to rel.tempCondensacao.comUnidade("°C"),
+                    "Corrente elétrica" to rel.correnteEletrica.comUnidade("A"),
+                    "Tensão elétrica" to rel.tensaoEletrica.comUnidade("V"),
+                    "SUPERAQUECIMENTO" to rel.superaquecimento.comUnidade("K"),
+                    "SUBRESFRIAMENTO" to rel.subresfriamento.comUnidade("K"),
+                )
             )
-        )
+        }
 
         if (rel.diagnosticoIA.isNotBlank()) { b.secao("Diagnóstico assistido por IA"); b.paragrafo(rel.diagnosticoIA) }
         if (rel.servicosRealizados.isNotBlank()) { b.secao("Serviços realizados"); b.paragrafo(rel.servicosRealizados) }
@@ -415,7 +418,7 @@ object PdfGenerator {
         saldo: Double,
     ): File {
         val doc = PdfDocument()
-        val rodape = "Gerado por Refrigeração Pro em ${formatoData.format(Date())}"
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
         val b = Construtor(context, doc, rodape)
         val formatoDia = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
 
@@ -446,6 +449,69 @@ object PdfGenerator {
 
         b.fecharPagina()
         val arquivo = File(Arquivos.pastaPdfs(context), "extrato-${tituloMes.replace(" ", "_")}.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    /** Gera o PDF do relatório de inspeção de compressor de ar comprimido (checklist). */
+    fun gerarRelatorioArComprimido(
+        context: Context,
+        rel: Relatorio,
+        cliente: Cliente?,
+        equipamento: Equipamento?,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+        val valores = br.com.refrigeracaopro.data.RelatorioArComprimido.parse(rel.dadosExtra)
+
+        b.cabecalho("INSPEÇÃO – AR COMPRIMIDO", rel.numero)
+
+        b.secao("Dados gerais")
+        b.camposDuasColunas(
+            listOf(
+                "Data/Hora" to formatoData.format(Date(rel.dataHora)),
+                "Técnico" to context.nomeTecnico,
+            )
+        )
+        b.secao("Cliente")
+        b.camposDuasColunas(dadosCliente(cliente))
+        if (equipamento != null) {
+            b.secao("Equipamento")
+            b.camposDuasColunas(dadosEquipamento(equipamento))
+        }
+
+        // Cada seção do checklist vira uma tabela rótulo/valor (somente preenchidos)
+        br.com.refrigeracaopro.data.RelatorioArComprimido.SECOES.forEach { secao ->
+            val linhas = secao.campos.map { campo ->
+                val v = valores[campo.chave].orEmpty()
+                val valorComUnidade = if (v.isBlank() || campo.sufixo.isBlank()) v else "$v ${campo.sufixo}"
+                campo.rotulo to valorComUnidade
+            }.filter { it.second.isNotBlank() }
+            if (linhas.isNotEmpty()) {
+                b.secao(secao.titulo)
+                b.tabela(linhas)
+            }
+        }
+
+        if (rel.recomendacoes.isNotBlank()) { b.secao("Recomendações técnicas"); b.paragrafo(rel.recomendacoes) }
+        if (rel.conclusao.isNotBlank()) { b.secao("Conclusão"); b.paragrafo(rel.conclusao) }
+
+        b.fotos("Fotos da inspeção", Arquivos.textoParaLista(rel.fotosAntes))
+
+        b.secao("Avisos técnicos e de segurança")
+        b.paragrafo(br.com.refrigeracaopro.data.Avisos.SEGURANCA.joinToString("\n") { "• $it" })
+
+        b.assinaturas(
+            listOf(
+                (context.nomeTecnico.ifBlank { "Técnico" }) to rel.assinaturaTecnico,
+                (cliente?.nome ?: "Cliente") to rel.assinaturaCliente,
+            )
+        )
+
+        b.fecharPagina()
+        val arquivo = File(Arquivos.pastaPdfs(context), "${rel.numero}.pdf")
         arquivo.outputStream().use { doc.writeTo(it) }
         doc.close()
         return arquivo

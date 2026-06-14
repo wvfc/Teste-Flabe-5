@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -57,13 +57,21 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 3→4: tipo e dados extra (checklist) do relatório. */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE relatorios ADD COLUMN tipo TEXT NOT NULL DEFAULT 'Refrigeração'")
+                db.execSQL("ALTER TABLE relatorios ADD COLUMN dadosExtra TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     NOME_BANCO
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instancia = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instancia = it }
             }
 
         /** Fecha o banco (usado antes de backup/restauração). */
