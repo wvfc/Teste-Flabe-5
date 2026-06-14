@@ -182,24 +182,43 @@ object Arquivos {
     }.getOrDefault("arquivo")
 
     /**
-     * Lê um arquivo escolhido para anexar ao Assistente IA. Se for texto legível,
-     * devolve o conteúdo (limitado); senão, devolve apenas uma nota com o nome,
-     * pois arquivos binários (ex.: PDF) não são lidos offline.
+     * Lê um arquivo escolhido para anexar ao Assistente IA. Extrai o texto de
+     * PDFs e de arquivos de texto, para que a IA possa resumir/analisar. Quando
+     * não há texto extraível (ex.: PDF digitalizado/imagem), devolve uma nota.
      */
     fun lerArquivoTexto(context: Context, uri: Uri): Pair<String, String> {
         val nome = nomeDoConteudo(context, uri)
-        val extensoesTexto = listOf("txt", "csv", "log", "json", "xml", "md", "kt", "java", "ini", "cfg")
         val ext = nome.substringAfterLast('.', "").lowercase()
+        val extensoesTexto = listOf("txt", "csv", "log", "json", "xml", "md", "kt", "java", "ini", "cfg")
+
+        if (ext == "pdf") {
+            val texto = extrairTextoPdf(context, uri)
+            return if (!texto.isNullOrBlank()) {
+                nome to texto.take(15000)
+            } else {
+                nome to "[O PDF \"$nome\" parece ser digitalizado/imagem (sem texto extraível). " +
+                    "Não foi possível ler o conteúdo. Se possível, envie um PDF com texto ou tire uma foto da página.]"
+            }
+        }
+
         if (ext in extensoesTexto) {
             val conteudo = runCatching {
                 context.contentResolver.openInputStream(uri)!!.use { it.bufferedReader().readText() }
             }.getOrNull()
-            if (!conteudo.isNullOrBlank()) {
-                return nome to conteudo.take(4000)
+            if (!conteudo.isNullOrBlank()) return nome to conteudo.take(15000)
+        }
+
+        return nome to "[Arquivo \"$nome\" anexado — tipo não suportado para leitura de texto. Descreva o que deseja analisar.]"
+    }
+
+    /** Extrai o texto de um PDF usando PdfBox-Android. */
+    private fun extrairTextoPdf(context: Context, uri: Uri): String? = runCatching {
+        context.contentResolver.openInputStream(uri)!!.use { entrada ->
+            com.tom_roush.pdfbox.pdmodel.PDDocument.load(entrada).use { doc ->
+                com.tom_roush.pdfbox.text.PDFTextStripper().getText(doc).trim()
             }
         }
-        return nome to "[Arquivo \"$nome\" anexado — conteúdo binário não lido pelo app. Descreva o que deseja analisar.]"
-    }
+    }.getOrNull()
 
     // ----- Conversão entre lista de caminhos e o campo texto do banco -----
     fun listaParaTexto(lista: List<String>): String = lista.joinToString("|")

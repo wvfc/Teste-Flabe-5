@@ -38,7 +38,7 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 Todas as pressões do app (cálculos de superaquecimento/subresfriamento, campos do relatório, PDF e tabela de gases) são tratadas em **psi**.
 
 ### Assistente IA
-Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e **arquivos** (texto embutido no contexto). As respostas vêm em **texto puro** (sem marcações Markdown como `**`) e no formato estruturado de diagnóstico.
+Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e **arquivos**. O texto de **PDFs** é extraído no próprio aparelho (PdfBox-Android) e enviado à IA, permitindo resumir/analisar o documento; PDFs digitalizados (imagem) avisam que não há texto extraível. As respostas vêm em **texto puro** (sem marcações Markdown como `**`) e no formato estruturado de diagnóstico.
 
 ### Fotos
 As fotos (equipamentos, OS e relatórios) são adicionadas **pela galeria**. As imagens são copiadas para o armazenamento interno, têm a rotação corrigida (EXIF) e são **comprimidas** antes de salvar/exportar.

@@ -54,7 +54,9 @@ import br.com.refrigeracaopro.ia.OpenAiClient
 import br.com.refrigeracaopro.ui.components.TelaBase
 import br.com.refrigeracaopro.util.Arquivos
 import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 private data class Mensagem(val doUsuario: Boolean, val texto: String, val imagens: List<String> = emptyList())
@@ -78,8 +80,15 @@ fun AssistenteIAScreen(nav: NavController) {
     val escolherImagens = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         uris.forEach { uri -> Arquivos.copiarImagem(context, uri)?.let { imagensAnexadas.add(it) } }
     }
+    var lendoArquivo by remember { mutableStateOf(false) }
     val escolherArquivo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) arquivosAnexados.add(Arquivos.lerArquivoTexto(context, uri))
+        if (uri != null) escopo.launch {
+            lendoArquivo = true
+            // Leitura/extração de texto (PDF pode ser pesado) fora da thread principal
+            val anexo = withContext(Dispatchers.IO) { Arquivos.lerArquivoTexto(context, uri) }
+            arquivosAnexados.add(anexo)
+            lendoArquivo = false
+        }
     }
 
     LaunchedEffect(mensagens.size) {
@@ -196,6 +205,14 @@ fun AssistenteIAScreen(nav: NavController) {
                             leadingIcon = { Icon(Icons.AutoMirrored.Filled.InsertDriveFile, null, Modifier.size(16.dp)) },
                             label = { Text(arq.first.take(16)) })
                     }
+                }
+            }
+
+            if (lendoArquivo) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.size(8.dp))
+                    Text("Lendo arquivo...", style = MaterialTheme.typography.bodySmall)
                 }
             }
 

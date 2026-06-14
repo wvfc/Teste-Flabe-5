@@ -80,6 +80,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     // Correção de orientação (EXIF) das fotos da câmera
     implementation("androidx.exifinterface:exifinterface:1.3.7")
+    // Extração de texto de PDF (para a IA resumir/analisar arquivos anexados)
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
