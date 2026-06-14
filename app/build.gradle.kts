@@ -10,17 +10,34 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "br.com.refrigeracaopro"
+        // Deve ser idêntico ao "Nome do pacote" cadastrado no cliente OAuth do Google
+        applicationId = "com.soutech.refrigeracao"
         minSdk = 26 // Android 8.0 ou superior
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
     }
 
+    // Chave de assinatura FIXA versionada no repositório: garante um SHA-1
+    // estável (igual em qualquer build, local ou no GitHub Actions), exigido
+    // pelo cliente OAuth do Google (Drive appDataFolder).
+    signingConfigs {
+        create("comum") {
+            storeFile = file("signing/refrigeracaopro.jks")
+            storePassword = "refrigeracaopro"
+            keyAlias = "refrigeracaopro"
+            keyPassword = "refrigeracaopro"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("comum")
+        }
         release {
             // MVP: sem minificação para simplificar a geração do APK
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("comum")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -82,6 +99,8 @@ dependencies {
     implementation("androidx.exifinterface:exifinterface:1.3.7")
     // Extração de texto de PDF (para a IA resumir/analisar arquivos anexados)
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+    // Login Google + token OAuth para backup no Google Drive (appDataFolder)
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 

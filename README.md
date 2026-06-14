@@ -46,6 +46,16 @@ As fotos (equipamentos, OS e relatórios) são adicionadas **pela galeria**. As 
 ### Sessão
 Após o primeiro login, a sessão fica ativa e o app **não pede login novamente** ao reabrir.
 
+### Backup no Google Drive (appDataFolder)
+O app pode guardar o banco de dados na **pasta privada do app no Google Drive** (`appDataFolder`, invisível ao usuário). Em **Configurações → Backup na nuvem** há login com a conta Google e botões de enviar/restaurar.
+
+Para funcionar, é preciso um **cliente OAuth Android** no Google Cloud com:
+- **Nome do pacote:** `com.soutech.refrigeracao` (igual ao `applicationId`)
+- **SHA‑1 do certificado:** `F8:AD:B6:B3:7A:23:3D:35:C3:1B:E2:67:3A:15:37:63:DF:59:EA:16`
+- **Escopo OAuth:** `https://www.googleapis.com/auth/drive.appdata` (adicionado na tela de consentimento)
+
+> O app é assinado por um **keystore fixo versionado** (`app/signing/refrigeracaopro.jks`), garantindo que o SHA‑1 acima seja sempre o mesmo — tanto em builds locais quanto no APK gerado pelo GitHub Actions.
+
 ### Base técnica interna para a IA
 Em `app/src/main/assets/base_tecnica/` há arquivos JSON consultados **offline** antes de chamar a IA: `gases_refrigerantes`, `compressores_referencia`, `diagnosticos_refrigeracao`, `falhas_comuns`, `procedimentos_tecnicos`, `tabela_capacitores`, `tabela_carga_fluido`. O contexto do relatório (medições, fluido, superaquecimento/subresfriamento, defeito, serviços) é combinado a essa base para gerar diagnósticos fundamentados.
 

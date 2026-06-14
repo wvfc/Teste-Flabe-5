@@ -198,6 +198,9 @@ fun ConfiguracoesScreen(nav: NavController) {
                 ) { Text("Restaurar") }
             }
 
+            TituloSecao("Backup na nuvem (Google Drive)")
+            BackupDriveSecao()
+
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = { salvarTudo(); Toast.makeText(context, "Configurações salvas.", Toast.LENGTH_SHORT).show() },
@@ -217,4 +220,90 @@ private fun Campo(valor: String, aoMudar: (String) -> Unit, rotulo: String) {
         singleLine = true,
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     )
+}
+
+/**
+ * Seção de backup no Google Drive (appDataFolder). Faz login com a conta Google,
+ * solicitando o escopo drive.appdata, e envia/restaura o banco de dados.
+ *
+ * Usa a API GoogleSignIn (marcada como deprecated, mas estável e adequada para
+ * obter o escopo do Drive + token via GoogleAuthUtil).
+ */
+@Suppress("DEPRECATION")
+@Composable
+private fun BackupDriveSecao() {
+    val context = LocalContext.current
+    val escopo = rememberCoroutineScope()
+
+    var conta by remember {
+        mutableStateOf(com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context))
+    }
+    var ocupado by remember { mutableStateOf(false) }
+
+    val login = rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { resultado ->
+        val task = com.google.android.gms.auth.api.signin.GoogleSignIn
+            .getSignedInAccountFromIntent(resultado.data)
+        try {
+            conta = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            Toast.makeText(context, "Conectado: ${conta?.email}", Toast.LENGTH_SHORT).show()
+        } catch (e: com.google.android.gms.common.api.ApiException) {
+            Toast.makeText(context, "Falha ao conectar (código ${e.statusCode}).", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun cliente() = com.google.android.gms.auth.api.signin.GoogleSignIn
+        .getClient(context, br.com.refrigeracaopro.util.DriveBackup.opcoesLogin())
+
+    Text(
+        "Guarda o banco na pasta privada do app no seu Google Drive (invisível na lista de arquivos). " +
+            "Útil para trocar de celular sem perder os dados.",
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
+    val atual = conta
+    if (atual == null) {
+        Button(
+            onClick = { login.launch(cliente().signInIntent) },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) { Text("Conectar Google Drive") }
+    } else {
+        Text("Conta: ${atual.email}", style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 8.dp))
+        Row(Modifier.padding(top = 8.dp)) {
+            OutlinedButton(
+                onClick = {
+                    ocupado = true
+                    escopo.launch {
+                        val r = br.com.refrigeracaopro.util.DriveBackup.enviar(context, atual)
+                        Toast.makeText(context, mensagemDrive(r), Toast.LENGTH_LONG).show()
+                        ocupado = false
+                    }
+                },
+                enabled = !ocupado,
+                modifier = Modifier.weight(1f).padding(end = 4.dp)
+            ) { Text(if (ocupado) "..." else "Enviar backup") }
+            OutlinedButton(
+                onClick = {
+                    ocupado = true
+                    escopo.launch {
+                        val r = br.com.refrigeracaopro.util.DriveBackup.restaurar(context, atual)
+                        Toast.makeText(context, mensagemDrive(r), Toast.LENGTH_LONG).show()
+                        ocupado = false
+                    }
+                },
+                enabled = !ocupado,
+                modifier = Modifier.weight(1f).padding(start = 4.dp)
+            ) { Text("Restaurar") }
+        }
+        androidx.compose.material3.TextButton(onClick = {
+            cliente().signOut().addOnCompleteListener { conta = null }
+        }) { Text("Desconectar") }
+    }
+}
+
+private fun mensagemDrive(r: br.com.refrigeracaopro.util.DriveBackup.Resultado): String = when (r) {
+    is br.com.refrigeracaopro.util.DriveBackup.Resultado.Sucesso -> r.mensagem
+    is br.com.refrigeracaopro.util.DriveBackup.Resultado.Erro -> r.mensagem
 }
