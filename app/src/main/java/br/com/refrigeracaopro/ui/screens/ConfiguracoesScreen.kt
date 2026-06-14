@@ -43,6 +43,7 @@ import coil.compose.AsyncImage
 import br.com.refrigeracaopro.data.Prefs
 import br.com.refrigeracaopro.data.Prefs.backupAutomatico
 import br.com.refrigeracaopro.data.Prefs.backupFrequencia
+import br.com.refrigeracaopro.data.Prefs.backupSomenteWifi
 import br.com.refrigeracaopro.data.Prefs.chaveOpenAi
 import br.com.refrigeracaopro.data.Prefs.cnpjEmpresa
 import br.com.refrigeracaopro.data.Prefs.emailEmpresa
@@ -243,6 +244,7 @@ private fun BackupDriveSecao() {
     var ocupado by remember { mutableStateOf(false) }
     var backupAuto by remember { mutableStateOf(context.backupAutomatico) }
     var frequencia by remember { mutableStateOf(context.backupFrequencia) }
+    var somenteWifi by remember { mutableStateOf(context.backupSomenteWifi) }
 
     val login = rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -280,7 +282,8 @@ private fun BackupDriveSecao() {
                 onClick = {
                     ocupado = true
                     escopo.launch {
-                        val r = br.com.refrigeracaopro.util.DriveBackup.enviar(context, atual)
+                        // Manual: força o envio mesmo sem mudanças
+                        val r = br.com.refrigeracaopro.util.DriveBackup.enviar(context, atual, forcar = true)
                         Toast.makeText(context, mensagemDrive(r), Toast.LENGTH_LONG).show()
                         ocupado = false
                     }
@@ -316,9 +319,19 @@ private fun BackupDriveSecao() {
                 context.backupFrequencia = sel
                 br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
             })
+            SeletorOpcoes(
+                "Rede do backup automático",
+                listOf("Wi-Fi apenas", "Wi-Fi + dados móveis"),
+                if (somenteWifi) "Wi-Fi apenas" else "Wi-Fi + dados móveis",
+                { sel ->
+                    somenteWifi = sel == "Wi-Fi apenas"
+                    context.backupSomenteWifi = somenteWifi
+                    br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
+                }
+            )
             Text(
-                "O envio ocorre em segundo plano quando houver internet. O Android pode " +
-                    "ajustar o horário exato para economizar bateria.",
+                "Backup completo (banco + fotos + manuais + PDFs). Envia em segundo plano e só " +
+                    "quando houver mudança. O Android pode ajustar o horário para economizar bateria.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

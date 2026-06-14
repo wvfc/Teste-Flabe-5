@@ -93,4 +93,14 @@ object Prefs {
     var Context.backupFrequencia: String
         get() = config(this).getString("backup_freq", "Diária") ?: "Diária"
         set(v) = config(this).edit().putString("backup_freq", v).apply()
+
+    /** Backup automático só em rede não tarifada (Wi-Fi). */
+    var Context.backupSomenteWifi: Boolean
+        get() = config(this).getBoolean("backup_wifi", true)
+        set(v) = config(this).edit().putBoolean("backup_wifi", v).apply()
+
+    /** Assinatura (hash) do último backup enviado — evita reenviar sem mudanças. */
+    var Context.backupHash: String
+        get() = config(this).getString("backup_hash", "") ?: ""
+        set(v) = config(this).edit().putString("backup_hash", v).apply()
 }

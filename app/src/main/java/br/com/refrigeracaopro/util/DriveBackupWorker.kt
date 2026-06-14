@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import br.com.refrigeracaopro.data.Prefs.backupAutomatico
 import br.com.refrigeracaopro.data.Prefs.backupFrequencia
+import br.com.refrigeracaopro.data.Prefs.backupSomenteWifi
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import java.util.concurrent.TimeUnit
 
@@ -47,10 +48,10 @@ object AgendadorBackup {
             return
         }
         val horas = if (context.backupFrequencia == "Semanal") 24L * 7 else 24L
+        // Wi-Fi (rede não tarifada) ou qualquer conexão, conforme a preferência
+        val rede = if (context.backupSomenteWifi) NetworkType.UNMETERED else NetworkType.CONNECTED
         val requisicao = PeriodicWorkRequestBuilder<DriveBackupWorker>(horas, TimeUnit.HOURS)
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-            )
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(rede).build())
             .build()
         // UPDATE mantém o histórico mas aplica o novo intervalo/constraints
         wm.enqueueUniquePeriodicWork(NOME, ExistingPeriodicWorkPolicy.UPDATE, requisicao)
