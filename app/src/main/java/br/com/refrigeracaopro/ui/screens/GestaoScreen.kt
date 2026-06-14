@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +47,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import br.com.refrigeracaopro.data.Lancamento
 import br.com.refrigeracaopro.data.TipoLancamento
+import br.com.refrigeracaopro.pdf.PdfGenerator
+import br.com.refrigeracaopro.util.Arquivos
 import br.com.refrigeracaopro.ui.components.CampoTexto
 import br.com.refrigeracaopro.ui.components.ConfirmarExclusao
 import br.com.refrigeracaopro.ui.components.SeletorOpcoes
@@ -79,6 +84,11 @@ fun GestaoScreen(nav: NavController, vm: GestaoViewModel = viewModel()) {
     val receita = doMes.filter { it.tipo == TipoLancamento.RECEITA }.sumOf { it.valor }
     val despesa = doMes.filter { it.tipo == TipoLancamento.DESPESA }.sumOf { it.valor }
     val saldo = receita - despesa
+
+    // Saldo TOTAL acumulado (todos os meses)
+    val receitaTotal = todos.filter { it.tipo == TipoLancamento.RECEITA }.sumOf { it.valor }
+    val despesaTotal = todos.filter { it.tipo == TipoLancamento.DESPESA }.sumOf { it.valor }
+    val saldoTotal = receitaTotal - despesaTotal
 
     var editar by remember { mutableStateOf<Lancamento?>(null) }
     var novo by remember { mutableStateOf(false) }
@@ -120,14 +130,44 @@ fun GestaoScreen(nav: NavController, vm: GestaoViewModel = viewModel()) {
                 }
             }
 
-            OutlinedButton(
-                onClick = { vm.importarReceitasDeOS { n ->
-                    Toast.makeText(context, if (n > 0) "$n receita(s) importada(s) de OS concluídas." else "Nenhuma OS nova para importar.", Toast.LENGTH_LONG).show()
-                } },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            // Saldo total acumulado (soma de todos os meses)
+            Card(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Download, null, modifier = Modifier.height(18.dp))
-                Spacer(Modifier.height(4.dp)); Text(" Importar receitas de OS concluídas")
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Saldo total acumulado", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Receitas ${moeda.format(receitaTotal)} • Despesas ${moeda.format(despesaTotal)}",
+                            style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.85f))
+                    }
+                    Text(moeda.format(saldoTotal), fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge, color = Color.White)
+                }
+            }
+
+            Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { vm.importarReceitasDeOS { n ->
+                        Toast.makeText(context, if (n > 0) "$n receita(s) importada(s) de OS concluídas." else "Nenhuma OS nova para importar.", Toast.LENGTH_LONG).show()
+                    } },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp)); Text("Importar OS")
+                }
+                OutlinedButton(
+                    onClick = {
+                        val titulo = formatoMes.format(mes.time).replaceFirstChar { it.uppercase() }
+                        val pdf = PdfGenerator.gerarExtrato(context, titulo, doMes, receita, despesa, saldo)
+                        Arquivos.compartilhar(context, pdf, "application/pdf", "Extrato $titulo")
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = doMes.isNotEmpty()
+                ) {
+                    Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp)); Text("PDF do mês")
+                }
             }
 
             Text("Lançamentos do mês (${doMes.size})", style = MaterialTheme.typography.labelLarge,

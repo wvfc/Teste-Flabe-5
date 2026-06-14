@@ -40,8 +40,11 @@ Todas as pressões do app (cálculos de superaquecimento/subresfriamento, campos
 ### Assistente IA
 Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e **arquivos** (texto embutido no contexto). As respostas vêm em **texto puro** (sem marcações Markdown como `**`) e no formato estruturado de diagnóstico.
 
-### Câmera e fotos
-A captura por câmera usa `ActivityResultContracts.TakePicture` com **URI segura via FileProvider** (sem caminho absoluto direto), valida a existência de app de câmera, trata cancelamento/erro sem travar, corrige a rotação (EXIF) e **comprime** a imagem antes de salvar/exportar. Fotos da galeria continuam funcionando e também são comprimidas. Permissões tratadas para Android 10 a 13+.
+### Fotos
+As fotos (equipamentos, OS e relatórios) são adicionadas **pela galeria**. As imagens são copiadas para o armazenamento interno, têm a rotação corrigida (EXIF) e são **comprimidas** antes de salvar/exportar.
+
+### Sessão
+Após o primeiro login, a sessão fica ativa e o app **não pede login novamente** ao reabrir.
 
 ### Base técnica interna para a IA
 Em `app/src/main/assets/base_tecnica/` há arquivos JSON consultados **offline** antes de chamar a IA: `gases_refrigerantes`, `compressores_referencia`, `diagnosticos_refrigeracao`, `falhas_comuns`, `procedimentos_tecnicos`, `tabela_capacitores`, `tabela_carga_fluido`. O contexto do relatório (medições, fluido, superaquecimento/subresfriamento, defeito, serviços) é combinado a essa base para gerar diagnósticos fundamentados.

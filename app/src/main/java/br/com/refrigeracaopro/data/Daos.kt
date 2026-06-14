@@ -131,6 +131,9 @@ interface LancamentoDao {
     @Query("SELECT COUNT(*) FROM lancamentos WHERE ordemServicoId = :osId")
     suspend fun contarPorOS(osId: Long): Int
 
+    @Query("SELECT * FROM lancamentos WHERE ordemServicoId = :osId LIMIT 1")
+    suspend fun buscarPorOS(osId: Long): Lancamento?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun salvar(lancamento: Lancamento): Long
 

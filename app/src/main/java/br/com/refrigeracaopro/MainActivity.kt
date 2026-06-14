@@ -8,12 +8,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import br.com.refrigeracaopro.data.Prefs.sessaoAtiva
 import br.com.refrigeracaopro.ui.screens.AgendamentosScreen
 import br.com.refrigeracaopro.ui.screens.AssistenteIAScreen
 import br.com.refrigeracaopro.ui.screens.CalculosScreen
@@ -53,11 +55,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             RefrigeracaoProTheme {
-                var logado by remember { mutableStateOf(false) }
+                // Sessão persistente: se já houve login, não pede de novo ao reabrir
+                var logado by rememberSaveable { mutableStateOf(this.sessaoAtiva) }
                 val nav = rememberNavController()
 
                 if (!logado) {
-                    LoginScreen(aoEntrar = { logado = true })
+                    LoginScreen(aoEntrar = {
+                        this.sessaoAtiva = true
+                        logado = true
+                    })
                 } else {
                     NavHost(navController = nav, startDestination = "dashboard") {
                         composable("dashboard") { DashboardScreen(nav) }

@@ -200,11 +200,43 @@ class OrdensViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun salvar(os: OrdemServico, aoConcluir: (Long) -> Unit = {}) {
-        viewModelScope.launch { aoConcluir(dao.salvar(os)) }
+        viewModelScope.launch {
+            val id = dao.salvar(os)
+            // Sincroniza o financeiro: OS concluída vira receita automaticamente
+            sincronizarFinanceiro(if (os.id == 0L) os.copy(id = id) else os)
+            aoConcluir(id)
+        }
+    }
+
+    /**
+     * Mantém o lançamento financeiro em dia com o status da OS:
+     * - Concluída e com valor: cria/atualiza a Receita correspondente.
+     * - Deixou de estar concluída (ex.: cancelada): remove a receita lançada.
+     */
+    private suspend fun sincronizarFinanceiro(os: OrdemServico) {
+        val lancDao = db().lancamentoDao()
+        val existente = lancDao.buscarPorOS(os.id)
+        if (os.status == br.com.refrigeracaopro.data.StatusOS.CONCLUIDA && os.valorTotal > 0) {
+            val base = existente ?: br.com.refrigeracaopro.data.Lancamento(
+                tipo = br.com.refrigeracaopro.data.TipoLancamento.RECEITA,
+                descricao = "OS ${os.numero}",
+                categoria = "Serviço",
+                valor = 0.0,
+                data = os.dataHora,
+                ordemServicoId = os.id,
+            )
+            lancDao.salvar(base.copy(valor = os.valorTotal, data = os.dataHora, descricao = "OS ${os.numero}"))
+        } else if (existente != null) {
+            lancDao.excluir(existente)
+        }
     }
 
     fun excluir(os: OrdemServico) {
-        viewModelScope.launch { dao.excluir(os) }
+        viewModelScope.launch {
+            // Remove também a receita vinculada, se houver
+            db().lancamentoDao().buscarPorOS(os.id)?.let { db().lancamentoDao().excluir(it) }
+            dao.excluir(os)
+        }
     }
 
     suspend fun buscar(id: Long): OrdemServico? = dao.buscar(id)

@@ -2,8 +2,6 @@ package br.com.refrigeracaopro.ui.components
 
 import android.graphics.Bitmap
 import android.graphics.Paint
-import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -24,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.AlertDialog
@@ -42,7 +39,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -153,50 +149,11 @@ fun SecaoFotos(
     aoMudar: (List<String>) -> Unit,
 ) {
     val context = LocalContext.current
-    // O caminho pendente da foto é salvo com rememberSaveable: a Activity pode
-    // ser recriada enquanto o app de câmera está em primeiro plano, e sem isso o
-    // estado se perderia e a foto não seria salva (causa real do bug).
-    var caminhoPendente by rememberSaveable { mutableStateOf<String?>(null) }
 
     val galeria = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         // Fotos da galeria: copiadas e comprimidas para o armazenamento interno
         val novas = uris.mapNotNull { Arquivos.copiarImagem(context, it) }
         if (novas.isNotEmpty()) aoMudar(fotos + novas)
-    }
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        val caminho = caminhoPendente
-        if (caminho != null) {
-            val arquivo = File(caminho)
-            if (ok && arquivo.exists() && arquivo.length() > 0) {
-                // Comprime a foto recém-capturada antes de vincular ao registro
-                Arquivos.comprimirNoLocal(context, caminho)
-                aoMudar(fotos + caminho)
-            } else {
-                // Usuário cancelou ou a captura falhou: remove o arquivo vazio
-                arquivo.delete()
-            }
-        }
-        caminhoPendente = null
-    }
-
-    // Dispara a câmera com URI segura via FileProvider; trata ausência de app/erros
-    fun abrirCamera() {
-        if (!Arquivos.temCamera(context)) {
-            Toast.makeText(context, "Nenhum app de câmera disponível.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val (uri, caminho) = Arquivos.uriParaCamera(context)
-        caminhoPendente = caminho
-        runCatching { camera.launch(uri) }.onFailure {
-            Toast.makeText(context, "Não foi possível abrir a câmera.", Toast.LENGTH_SHORT).show()
-            File(caminho).delete()
-            caminhoPendente = null
-        }
-    }
-
-    val permissaoCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { concedida ->
-        if (concedida) abrirCamera()
-        else Toast.makeText(context, "Permissão de câmera negada.", Toast.LENGTH_SHORT).show()
     }
 
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -229,19 +186,7 @@ fun SecaoFotos(
             OutlinedButton(onClick = { galeria.launch("image/*") }) {
                 Icon(Icons.Default.PhotoLibrary, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Galeria")
-            }
-            OutlinedButton(onClick = {
-                // Verifica se a permissão já foi concedida; senão, solicita
-                val concedida = androidx.core.content.ContextCompat.checkSelfPermission(
-                    context, android.Manifest.permission.CAMERA
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (concedida) abrirCamera()
-                else permissaoCamera.launch(android.Manifest.permission.CAMERA)
-            }) {
-                Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Câmera")
+                Text("Adicionar da galeria")
             }
         }
     }

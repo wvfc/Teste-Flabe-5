@@ -405,6 +405,52 @@ object PdfGenerator {
         return arquivo
     }
 
+    /** Gera o PDF do extrato financeiro de um mês. */
+    fun gerarExtrato(
+        context: Context,
+        tituloMes: String,
+        lancamentos: List<br.com.refrigeracaopro.data.Lancamento>,
+        receita: Double,
+        despesa: Double,
+        saldo: Double,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Refrigeração Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+        val formatoDia = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+
+        b.cabecalho("EXTRATO FINANCEIRO", tituloMes)
+
+        b.secao("Resumo do período")
+        b.tabela(
+            listOf(
+                "Total de receitas" to formatoMoeda.format(receita),
+                "Total de despesas" to formatoMoeda.format(despesa),
+                "SALDO DO PERÍODO" to formatoMoeda.format(saldo),
+            )
+        )
+
+        b.secao("Lançamentos (${lancamentos.size})")
+        if (lancamentos.isEmpty()) {
+            b.paragrafo("Nenhum lançamento no período.")
+        } else {
+            b.tabela(
+                lancamentos.sortedBy { it.data }.map { l ->
+                    val sinal = if (l.tipo == br.com.refrigeracaopro.data.TipoLancamento.RECEITA) "+ " else "− "
+                    val rotulo = "${formatoDia.format(Date(l.data))}  ${l.descricao}" +
+                        if (l.categoria.isNotBlank()) " (${l.categoria})" else ""
+                    rotulo to (sinal + formatoMoeda.format(l.valor))
+                }
+            )
+        }
+
+        b.fecharPagina()
+        val arquivo = File(Arquivos.pastaPdfs(context), "extrato-${tituloMes.replace(" ", "_")}.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
     private fun String.comUnidade(unidade: String): String =
         if (isBlank()) "" else "$this $unidade"
 }

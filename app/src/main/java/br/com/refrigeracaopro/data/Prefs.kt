@@ -78,4 +78,9 @@ object Prefs {
     var Context.iaAtiva: Boolean
         get() = config(this).getBoolean("ia_ativa", true)
         set(v) = config(this).edit().putBoolean("ia_ativa", v).apply()
+
+    // ----- Sessão (mantém o usuário logado entre aberturas do app) -----
+    var Context.sessaoAtiva: Boolean
+        get() = config(this).getBoolean("sessao_ativa", false)
+        set(v) = config(this).edit().putBoolean("sessao_ativa", v).apply()
 }
