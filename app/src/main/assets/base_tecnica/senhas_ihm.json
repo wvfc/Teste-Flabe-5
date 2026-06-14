@@ -1,0 +1,207 @@
+[
+  {
+    "slug": "atlas-copco",
+    "nome": "Atlas Copco / Chicago Pneumatic",
+    "descricao": "Senhas e acessos por modelo de IHM (preencha via secrets usando senha_ref).",
+    "itens": [
+      {"titulo": "Elektronikon e CP Tronic MK III", "usuario": null, "senha": null, "senha_ref": "atlas-copco/elektronikon-cp-tronic-mk3", "observacao": "Inclui códigos para ARAVF, horas e DSS.", "imagens": []},
+      {"titulo": "Elektronikon I (MK IV Std) e Elektronikon I (MK V Std) / CP Tronic", "usuario": null, "senha": null, "senha_ref": "atlas-copco/elektronikon-i-mk4-mk5-std", "observacao": "Inclui manutenção (quando sem senha ativa), parametrização e tipo de partida.", "imagens": []},
+      {"titulo": "Elektronikon II e III / CP Tronic MK IV", "usuario": null, "senha": null, "senha_ref": "atlas-copco/elektronikon-ii-iii-cp-tronic-mk4", "observacao": "Inclui ARAVF, horas, DSS e avanços manuais (BD).", "imagens": []},
+      {"titulo": "Elektronikon MK V Graphic / ES 4000", "usuario": null, "senha": null, "senha_ref": "atlas-copco/elektronikon-mkv-graphic-es4000", "observacao": "Inclui níveis (service/customer), acesso total e funções como DSS/ARAVF.", "imagens": []},
+      {"titulo": "ES 3000", "usuario": null, "senha": null, "senha_ref": "atlas-copco/es3000", "observacao": "Inclui configurações gerais e alteração de pressão.", "imagens": []},
+      {"titulo": "ES 4000 Basic / Elektronikon MK5 Basic", "usuario": null, "senha": null, "senha_ref": "atlas-copco/es4000-basic-elektronikon-mk5-basic", "observacao": "Inclui configuração/manutenção e atalho de bloquear/desbloquear no painel.", "imagens": []},
+      {"titulo": "ES 130 (Gerenciador)", "usuario": null, "senha": null, "senha_ref": "atlas-copco/es130-gerenciador", "observacao": "Acesso total por código do gerenciador.", "imagens": []},
+      {"titulo": "Inversores WEG (linha VSD - Atlas)", "usuario": null, "senha": null, "senha_ref": "atlas-copco/inversores-weg-vsd", "observacao": "Senhas separadas (WEG e Atlas).", "imagens": []}
+    ]
+  },
+  {
+    "slug": "august",
+    "nome": "August",
+    "descricao": "Controladores MAM (preencha via secrets usando senha_ref).",
+    "itens": [
+      {"titulo": "Controlador MAM 680 (Chinês)", "usuario": null, "senha": null, "senha_ref": "august/mam-680", "observacao": "Lista de códigos de acesso/ajuste conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "boge",
+    "nome": "Boge",
+    "descricao": "Focus Controller / Focus Basic.",
+    "itens": [
+      {"titulo": "Focus Controller", "usuario": null, "senha": null, "senha_ref": "boge/focus-controller", "observacao": "Senha de parâmetros.", "imagens": []},
+      {"titulo": "Focus Basic", "usuario": null, "senha": null, "senha_ref": "boge/focus-basic", "observacao": "Códigos para reset manutenção e alteração de pressão.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "bumatec",
+    "nome": "Bumatec",
+    "descricao": "Configurações e manutenção.",
+    "itens": [
+      {"titulo": "Controlador (geral)", "usuario": null, "senha": null, "senha_ref": "bumatec/geral", "observacao": "Códigos de configuração/manutenção conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "coaire",
+    "nome": "Coaire",
+    "descricao": "Configurações e manutenção.",
+    "itens": [
+      {"titulo": "Controlador (geral)", "usuario": null, "senha": null, "senha_ref": "coaire/geral", "observacao": "Código para configurações/manutenção conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "compair",
+    "nome": "Compair",
+    "descricao": "Delcos (XL/Pro/3100/1000) e níveis de acesso (preencha via secrets usando senha_ref).",
+    "itens": [
+      {"titulo": "Delcos XL", "usuario": null, "senha": null, "senha_ref": "compair/delcos-xl", "observacao": "Possui múltiplos níveis (User/Maintenance/Technician/Specialist/Setup etc.).", "imagens": []},
+      {"titulo": "Delcos Pro", "usuario": null, "senha": null, "senha_ref": "compair/delcos-pro", "observacao": "Níveis de acesso (User/Technician/Specialist/Setup etc.).", "imagens": []},
+      {"titulo": "Delcos 3100", "usuario": null, "senha": null, "senha_ref": "compair/delcos-3100", "observacao": "Níveis de acesso (User/Maintenance/Technician/Specialist/Setup etc.).", "imagens": []},
+      {"titulo": "Delcos 1000", "usuario": null, "senha": null, "senha_ref": "compair/delcos-1000", "observacao": "Acesso por sequência de teclas no painel (ver manual).", "imagens": []},
+      {"titulo": "Resumo por níveis (tabela simplificada)", "usuario": null, "senha": null, "senha_ref": "compair/resumo-niveis", "observacao": "Mapa de níveis e códigos adicionais.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "elgi",
+    "nome": "Elgi",
+    "descricao": "Neuron e variantes.",
+    "itens": [
+      {"titulo": "Neuron II", "usuario": null, "senha": null, "senha_ref": "elgi/neuron-ii", "observacao": "Inclui códigos para fábrica, manutenção/serviços e operação.", "imagens": []},
+      {"titulo": "Neuron GFB", "usuario": null, "senha": null, "senha_ref": "elgi/neuron-gfb", "observacao": "Lista de senhas do controlador conforme material.", "imagens": []},
+      {"titulo": "Elgi Euro", "usuario": null, "senha": null, "senha_ref": "elgi/euro", "observacao": "Códigos de acesso/níveis conforme material.", "imagens": []},
+      {"titulo": "Elgi EN", "usuario": null, "senha": null, "senha_ref": "elgi/en", "observacao": "Códigos de acesso conforme material.", "imagens": []},
+      {"titulo": "Elgi EG", "usuario": null, "senha": null, "senha_ref": "elgi/eg", "observacao": "Inclui senha de fábrica e códigos de operação.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "fiac",
+    "nome": "Fiac",
+    "descricao": "Configurações.",
+    "itens": [
+      {"titulo": "Controlador (geral)", "usuario": null, "senha": null, "senha_ref": "fiac/geral", "observacao": "Código de configuração conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "fs-curtis",
+    "nome": "FS Curtis",
+    "descricao": "AIMS Plus (SEM/SEG) e funções.",
+    "itens": [
+      {"titulo": "AIMS Plus (SEM/SEG)", "usuario": null, "senha": null, "senha_ref": "fs-curtis/aims-plus", "observacao": "Inclui códigos para idioma, limpar histórico, reset e restauração padrão.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "gfb-neuron",
+    "nome": "GFB / Neuron",
+    "descricao": "Controlador Neuron/GFB.",
+    "itens": [
+      {"titulo": "Neuron / GFB (geral)", "usuario": null, "senha": null, "senha_ref": "gfb-neuron/geral", "observacao": "Lista de senhas conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "hydrovane",
+    "nome": "Hydrovane",
+    "descricao": "Hydrovane Pro (menus/idioma/reset/serviços).",
+    "itens": [
+      {"titulo": "Hydrovane Pro", "usuario": null, "senha": null, "senha_ref": "hydrovane/pro", "observacao": "Atalhos de menus/idioma e códigos de reset/serviços/energia.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "ingersoll-rand",
+    "nome": "Ingersoll Rand",
+    "descricao": "Intellisys (procedimentos e senha master onde aplicável).",
+    "itens": [
+      {"titulo": "Intellisys SE 15–100 HP", "usuario": null, "senha": null, "senha_ref": "ingersoll-rand/intellisys-se-15-100", "observacao": "Procedimentos de configurações de fábrica e calibração de sensores.", "imagens": []},
+      {"titulo": "Intellisys Xe-90 / Xe-145", "usuario": null, "senha": 2010, "senha_ref": "ingersoll-rand/intellisys-xe90-xe145", "observacao": "Senha master conforme material.", "imagens": []},
+      {"titulo": "Intellisys SG / SGV / SGN / SGNev", "usuario": null, "senha": null, "senha_ref": "ingersoll-rand/intellisys-sg-sgv-sgn-sgnev", "observacao": "Procedimento de fábrica e tabela de códigos internos.", "imagens": []},
+      {"titulo": "Intellisys S3 (Airmaster S1)", "usuario": null, "senha": null, "senha_ref": "ingersoll-rand/intellisys-s3-airmaster-s1", "observacao": "Configurações de fábrica conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "jaguar",
+    "nome": "Jaguar",
+    "descricao": "Controlador chinês MAM.",
+    "itens": [
+      {"titulo": "Controlador Chinês MAM", "usuario": null, "senha": null, "senha_ref": "jaguar/mam", "observacao": "Código de configuração conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "kaeser",
+    "nome": "Kaeser",
+    "descricao": "Sigma Control (Basic/1/2).",
+    "itens": [
+      {"titulo": "Sigma Control Basic", "usuario": null, "senha": null, "senha_ref": "kaeser/sigma-control-basic", "observacao": "Manutenção/configurações e lógica de bits (tipo de partida).", "imagens": []},
+      {"titulo": "Sigma Control 1", "usuario": null, "senha": null, "senha_ref": "kaeser/sigma-control-1", "observacao": "Configurações por códigos (L1–L4 e outros).", "imagens": []},
+      {"titulo": "Sigma Control 2", "usuario": null, "senha": null, "senha_ref": "kaeser/sigma-control-2", "observacao": "Ajuste de contraste por teclas.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "metalplan",
+    "nome": "Metalplan",
+    "descricao": "Master Control (senhas calculadas pelo horímetro).",
+    "itens": [
+      {"titulo": "Master Control 1 (Amarelo)", "usuario": null, "senha": null, "senha_ref": "metalplan/master-control-1-amarelo", "observacao": "Senha calculada com base em horas totais (fórmula).", "imagens": []},
+      {"titulo": "Master Control Carel (Azul - modelo novo)", "usuario": null, "senha": null, "senha_ref": "metalplan/master-control-carel-azul", "observacao": "Senha calculada com base nos 2 últimos dígitos do horímetro (fórmula).", "imagens": []}
+    ]
+  },
+  {
+    "slug": "puma",
+    "nome": "Puma",
+    "descricao": "Controladores e painéis variados (preencha via secrets usando senha_ref).",
+    "itens": [
+      {"titulo": "Controlador Chinês MAM-870", "usuario": null, "senha": null, "senha_ref": "puma/mam-870", "observacao": "Código de configurações conforme material.", "imagens": []},
+      {"titulo": "EPS 4.2 Logic Controller", "usuario": null, "senha": null, "senha_ref": "puma/eps-4-2", "observacao": "Senha de acesso conforme material.", "imagens": []},
+      {"titulo": "PUMA PSR15", "usuario": null, "senha": null, "senha_ref": "puma/psr15", "observacao": "Senha conforme material.", "imagens": []},
+      {"titulo": "Puma Man 860", "usuario": null, "senha": null, "senha_ref": "puma/man-860", "observacao": "Lista de senhas conforme material.", "imagens": []},
+      {"titulo": "Painel.Man 6070", "usuario": null, "senha": null, "senha_ref": "puma/painel-man-6070", "observacao": "Lista de senhas conforme material.", "imagens": []},
+      {"titulo": "Controlador Chinês MAM-220", "usuario": null, "senha": null, "senha_ref": "puma/mam-220", "observacao": "Usuário e senha de configurações conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "schulz",
+    "nome": "Schulz",
+    "descricao": "Control I/II/III, Control Net, Aircon e SRP (preencha via secrets usando senha_ref).",
+    "itens": [
+      {"titulo": "Control I", "usuario": 121, "senha": 9, "senha_ref": "schulz/control-i-ii", "observacao": "Inclui manutenção/pressão, técnico e reset geral (quando aplicável).", "imagens": []},
+      {"titulo": "Control III", "usuario": null, "senha": null, "senha_ref": "schulz/control-iii", "observacao": "Separação por usuário / fábrica (acesso/alterar) / calibração (acesso/alterar).", "imagens": []},
+      {"titulo": "Control Net", "usuario": null, "senha": null, "senha_ref": "schulz/control-net", "observacao": "Manutenção e configurações de fábrica.", "imagens": []},
+      {"titulo": "Aircon L1", "usuario": null, "senha": null, "senha_ref": "schulz/aircon-l1", "observacao": "Manutenção, configuração das entradas e zerar horas.", "imagens": []},
+      {"titulo": "SRP 3050E", "usuario": null, "senha": null, "senha_ref": "schulz/srp-3050e", "observacao": "Senha do modelo conforme material.", "imagens": []},
+      {"titulo": "Outros códigos Schulz (geral)", "usuario": null, "senha": null, "senha_ref": "schulz/geral", "observacao": "Senha geral e variações citadas no material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "scroll-outros",
+    "nome": "Scroll / Outros",
+    "descricao": "Entradas genéricas citadas no material (preencha via secrets usando senha_ref).",
+    "itens": [
+      {"titulo": "ControlNet 3 / relé sequência / falta de fase", "usuario": null, "senha": null, "senha_ref": "outros/controlnet-3", "observacao": "Parâmetro principal, fábrica e calibração.", "imagens": []},
+      {"titulo": "Scroll (geral)", "usuario": null, "senha": null, "senha_ref": "outros/scroll", "observacao": "Lista de senhas e modo contínuo conforme material.", "imagens": []},
+      {"titulo": "Scroll isento de óleo (2 estágios)", "usuario": null, "senha": null, "senha_ref": "outros/scroll-isento-oleo-2-estagios", "observacao": "Usuário/técnico conforme material.", "imagens": []},
+      {"titulo": "ABCP", "usuario": null, "senha": null, "senha_ref": "outros/abcp", "observacao": "Senha conforme material.", "imagens": []},
+      {"titulo": "E75 Azul Ar Brasil", "usuario": null, "senha": null, "senha_ref": "outros/e75-azul-ar-brasil", "observacao": "Códigos conforme material.", "imagens": []},
+      {"titulo": "Senha de reset geral (reset de senha)", "usuario": null, "senha": null, "senha_ref": "outros/reset-geral", "observacao": "Código de reset geral conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "sullair",
+    "nome": "Sullair",
+    "descricao": "Supervisor II.",
+    "itens": [
+      {"titulo": "Supervisor II", "usuario": null, "senha": null, "senha_ref": "sullair/supervisor-ii", "observacao": "Sequências de teclas para configurações avançadas e destravamento (com cálculo).", "imagens": []}
+    ]
+  },
+  {
+    "slug": "supreme-techto",
+    "nome": "Supreme Techto",
+    "descricao": "Controladores Supreme.",
+    "itens": [
+      {"titulo": "Supreme Techto (geral)", "usuario": null, "senha": null, "senha_ref": "supreme-techto/geral", "observacao": "Senha principal conforme material.", "imagens": []}
+    ]
+  },
+  {
+    "slug": "techto",
+    "nome": "Techto",
+    "descricao": "Controladores Techto.",
+    "itens": [
+      {"titulo": "Techto (geral)", "usuario": null, "senha": null, "senha_ref": "techto/geral", "observacao": "Senha usuário, outras senhas e senha de configuração de fábrica conforme material.", "imagens": []}
+    ]
+  }
+]

@@ -39,6 +39,7 @@ import br.com.refrigeracaopro.ui.screens.OrdensServicoScreen
 import br.com.refrigeracaopro.ui.screens.RelatorioArComprimidoFormScreen
 import br.com.refrigeracaopro.ui.screens.RelatorioFormScreen
 import br.com.refrigeracaopro.ui.screens.RelatoriosScreen
+import br.com.refrigeracaopro.ui.screens.SenhasIHMScreen
 import br.com.refrigeracaopro.ui.screens.ServicosScreen
 import br.com.refrigeracaopro.ui.theme.RefrigeracaoProTheme
 
@@ -144,6 +145,7 @@ class MainActivity : ComponentActivity() {
                         composable("manuais") { ManuaisScreen(nav) }
                         composable("gestao") { GestaoScreen(nav) }
                         composable("conversor") { ConversorScreen(nav) }
+                        composable("senhas_ihm") { SenhasIHMScreen(nav) }
                         composable("assistente") { AssistenteIAScreen(nav) }
                         composable("configuracoes") { ConfiguracoesScreen(nav) }
                     }
