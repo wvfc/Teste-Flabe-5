@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -65,13 +65,25 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 4→5: campos e fotos específicos de compressor no equipamento. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "pressaoNominal", "dataFabricacao", "anoFabricacao", "tipoPartida",
+                    "fotosPlaqueta", "fotosPlaquetaMotor", "fotosMaquina",
+                ).forEach { col ->
+                    db.execSQL("ALTER TABLE equipamentos ADD COLUMN $col TEXT NOT NULL DEFAULT ''")
+                }
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     NOME_BANCO
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instancia = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instancia = it }
             }
 
         /** Fecha o banco (usado antes de backup/restauração). */

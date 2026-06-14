@@ -1,5 +1,9 @@
 package br.com.refrigeracaopro.ui.screens
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -7,17 +11,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,8 +48,10 @@ import br.com.refrigeracaopro.ui.components.ConfirmarExclusao
 import br.com.refrigeracaopro.ui.components.SecaoFotos
 import br.com.refrigeracaopro.ui.components.SeletorOpcoes
 import br.com.refrigeracaopro.ui.components.TelaBase
+import br.com.refrigeracaopro.ui.components.TituloSecao
 import br.com.refrigeracaopro.util.Arquivos
 import br.com.refrigeracaopro.viewmodel.EquipamentosViewModel
+import java.io.File
 
 /** Lista de equipamentos cadastrados. */
 @Composable
@@ -87,7 +98,11 @@ fun EquipamentosScreen(nav: NavController, vm: EquipamentosViewModel = viewModel
     }
 }
 
-/** Formulário de equipamento, com cliente vinculado, fluido e fotos. */
+/**
+ * Formulário de equipamento. Para o tipo "Compressor" exibe um modelo de
+ * cadastro específico (sem fluido refrigerante, com pressão/tensão nominais,
+ * potência em kW, datas, tipo de partida, anexo de PDF e fotos por categoria).
+ */
 @Composable
 fun EquipamentoFormScreen(
     nav: NavController,
@@ -95,6 +110,7 @@ fun EquipamentoFormScreen(
     clientePreSelecionado: Long = 0L,
     vm: EquipamentosViewModel = viewModel(),
 ) {
+    val context = LocalContext.current
     val clientes by vm.clientes.collectAsState()
 
     var original by remember { mutableStateOf<Equipamento?>(null) }
@@ -110,6 +126,15 @@ fun EquipamentoFormScreen(
     var dataInstalacao by remember { mutableStateOf("") }
     var observacoes by remember { mutableStateOf("") }
     var fotos by remember { mutableStateOf(listOf<String>()) }
+    // Específicos de compressor
+    var pressaoNominal by remember { mutableStateOf("") }
+    var dataFabricacao by remember { mutableStateOf("") }
+    var anoFabricacao by remember { mutableStateOf("") }
+    var tipoPartida by remember { mutableStateOf("") }
+    var manuais by remember { mutableStateOf(listOf<String>()) }
+    var fotosPlaqueta by remember { mutableStateOf(listOf<String>()) }
+    var fotosPlaquetaMotor by remember { mutableStateOf(listOf<String>()) }
+    var fotosMaquina by remember { mutableStateOf(listOf<String>()) }
 
     LaunchedEffect(equipamentoId) {
         if (equipamentoId > 0) vm.buscar(equipamentoId)?.let { e ->
@@ -118,7 +143,20 @@ fun EquipamentoFormScreen(
             numeroSerie = e.numeroSerie; fluido = e.fluido; tensao = e.tensao; potencia = e.potencia
             local = e.localInstalacao; dataInstalacao = e.dataInstalacao; observacoes = e.observacoes
             fotos = Arquivos.textoParaLista(e.fotos)
+            pressaoNominal = e.pressaoNominal; dataFabricacao = e.dataFabricacao
+            anoFabricacao = e.anoFabricacao; tipoPartida = e.tipoPartida
+            manuais = Arquivos.textoParaLista(e.manuais)
+            fotosPlaqueta = Arquivos.textoParaLista(e.fotosPlaqueta)
+            fotosPlaquetaMotor = Arquivos.textoParaLista(e.fotosPlaquetaMotor)
+            fotosMaquina = Arquivos.textoParaLista(e.fotosMaquina)
         }
+    }
+
+    val ehCompressor = tipo == "Compressor"
+
+    // Anexar PDF (manual / documento do compressor)
+    val anexarPdf = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        if (uri != null) Arquivos.copiarParaManuais(context, uri, "$marca-$modelo")?.let { manuais = manuais + it }
     }
 
     TelaBase(nav, if (equipamentoId > 0) "Editar equipamento" else "Novo equipamento") { padding ->
@@ -141,28 +179,85 @@ fun EquipamentoFormScreen(
                 CampoTexto(modelo, { modelo = it }, "Modelo", modifier = Modifier.weight(1f).padding(start = 4.dp))
             }
             CampoTexto(numeroSerie, { numeroSerie = it }, "Número de série")
-            SeletorOpcoes("Fluido refrigerante", PTTable.NOMES + "Outro", fluido, { fluido = it })
-            Row {
-                CampoTexto(tensao, { tensao = it }, "Tensão (V)", modifier = Modifier.weight(1f).padding(end = 4.dp))
-                CampoTexto(potencia, { potencia = it }, "Potência", modifier = Modifier.weight(1f).padding(start = 4.dp))
-            }
-            CampoTexto(local, { local = it }, "Local de instalação")
-            CampoTexto(dataInstalacao, { dataInstalacao = it }, "Data de instalação (dd/mm/aaaa)")
-            CampoTexto(observacoes, { observacoes = it }, "Observações", linhas = 3)
 
-            Spacer(Modifier.height(8.dp))
-            SecaoFotos("Fotos do equipamento", fotos) { fotos = it }
+            if (ehCompressor) {
+                // ---- Modelo específico de COMPRESSOR ----
+                Row {
+                    CampoTexto(tensao, { tensao = it }, "Tensão nominal (V)", modifier = Modifier.weight(1f).padding(end = 4.dp))
+                    CampoTexto(potencia, { potencia = it }, "Potência (kW)", modifier = Modifier.weight(1f).padding(start = 4.dp))
+                }
+                CampoTexto(pressaoNominal, { pressaoNominal = it }, "Pressão nominal")
+                SeletorOpcoes(
+                    "Tipo de partida",
+                    listOf("Estrela-triângulo", "Inversor", "Soft start", "Partida direta"),
+                    tipoPartida, { tipoPartida = it }
+                )
+                Row {
+                    CampoTexto(dataFabricacao, { dataFabricacao = it }, "Data de fabricação", modifier = Modifier.weight(1f).padding(end = 4.dp))
+                    CampoTexto(anoFabricacao, { anoFabricacao = it }, "Ano de fabricação", modifier = Modifier.weight(1f).padding(start = 4.dp))
+                }
+                CampoTexto(local, { local = it }, "Local de instalação")
+                CampoTexto(observacoes, { observacoes = it }, "Observações", linhas = 3)
+
+                TituloSecao("Documento (PDF)")
+                manuais.forEach { caminho ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+                        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AttachFile, null, tint = MaterialTheme.colorScheme.secondary)
+                            Spacer(Modifier.width(8.dp))
+                            Text(File(caminho).name.substringAfter("-"), Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodySmall)
+                            IconButton(onClick = { manuais = manuais - caminho }) {
+                                Icon(Icons.Default.Delete, "Remover", tint = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+                OutlinedButton(onClick = { anexarPdf.launch("application/pdf") }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.AttachFile, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp)); Text("Anexar PDF")
+                }
+
+                TituloSecao("Fotos do compressor")
+                SecaoFotos("Foto da plaqueta", fotosPlaqueta) { fotosPlaqueta = it }
+                SecaoFotos("Foto da plaqueta do motor", fotosPlaquetaMotor) { fotosPlaquetaMotor = it }
+                SecaoFotos("Foto da máquina", fotosMaquina) { fotosMaquina = it }
+                SecaoFotos("Diversas", fotos) { fotos = it }
+            } else {
+                // ---- Modelo padrão (demais equipamentos) ----
+                SeletorOpcoes("Fluido refrigerante", PTTable.NOMES + "Outro", fluido, { fluido = it })
+                Row {
+                    CampoTexto(tensao, { tensao = it }, "Tensão (V)", modifier = Modifier.weight(1f).padding(end = 4.dp))
+                    CampoTexto(potencia, { potencia = it }, "Potência", modifier = Modifier.weight(1f).padding(start = 4.dp))
+                }
+                CampoTexto(local, { local = it }, "Local de instalação")
+                CampoTexto(dataInstalacao, { dataInstalacao = it }, "Data de instalação (dd/mm/aaaa)")
+                CampoTexto(observacoes, { observacoes = it }, "Observações", linhas = 3)
+
+                Spacer(Modifier.height(8.dp))
+                SecaoFotos("Fotos do equipamento", fotos) { fotos = it }
+            }
 
             Spacer(Modifier.height(12.dp))
             Button(
                 onClick = {
                     val equip = (original ?: Equipamento(clienteId = clienteId, tipo = tipo)).copy(
                         clienteId = clienteId, tipo = tipo, marca = marca, modelo = modelo,
-                        numeroSerie = numeroSerie, fluido = fluido, tensao = tensao, potencia = potencia,
+                        numeroSerie = numeroSerie, fluido = if (ehCompressor) "" else fluido,
+                        tensao = tensao, potencia = potencia,
                         localInstalacao = local, dataInstalacao = dataInstalacao, observacoes = observacoes,
                         fotos = Arquivos.listaParaTexto(fotos),
+                        manuais = Arquivos.listaParaTexto(manuais),
+                        pressaoNominal = pressaoNominal, dataFabricacao = dataFabricacao,
+                        anoFabricacao = anoFabricacao, tipoPartida = tipoPartida,
+                        fotosPlaqueta = Arquivos.listaParaTexto(fotosPlaqueta),
+                        fotosPlaquetaMotor = Arquivos.listaParaTexto(fotosPlaquetaMotor),
+                        fotosMaquina = Arquivos.listaParaTexto(fotosMaquina),
                     )
-                    vm.salvar(equip) { nav.popBackStack() }
+                    vm.salvar(equip) {
+                        Toast.makeText(context, "Equipamento salvo.", Toast.LENGTH_SHORT).show()
+                        nav.popBackStack()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 enabled = clienteId > 0

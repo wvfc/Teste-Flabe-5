@@ -65,8 +65,16 @@ data class Equipamento(
     val localInstalacao: String = "",
     val dataInstalacao: String = "",
     val observacoes: String = "",
-    val fotos: String = "", // caminhos separados por "|"
-    val manuais: String = "", // manuais técnicos anexados (caminhos/URLs separados por "|")
+    val fotos: String = "", // caminhos separados por "|" (também usado como "Diversas" em compressores)
+    val manuais: String = "", // manuais técnicos / PDF anexados (caminhos/URLs separados por "|")
+    // Campos específicos de compressor
+    val pressaoNominal: String = "",
+    val dataFabricacao: String = "",
+    val anoFabricacao: String = "",
+    val tipoPartida: String = "", // Estrela-triângulo, Inversor, Soft start, Partida direta
+    val fotosPlaqueta: String = "",
+    val fotosPlaquetaMotor: String = "",
+    val fotosMaquina: String = "",
 )
 
 /** Serviço de catálogo (ex.: troca de compressor, carga de gás). */
