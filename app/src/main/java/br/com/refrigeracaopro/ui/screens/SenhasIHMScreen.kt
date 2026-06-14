@@ -60,7 +60,8 @@ fun SenhasIHMScreen(nav: NavController) {
         else {
             val itens = m.itens.filter {
                 it.titulo.contains(busca, true) || it.senha.contains(busca, true) ||
-                    it.senhaRef.contains(busca, true) || it.observacao.contains(busca, true)
+                    it.senhaRef.contains(busca, true) || it.observacao.contains(busca, true) ||
+                    it.codigos.any { c -> c.nome.contains(busca, true) || c.valor.contains(busca, true) }
             }
             if (m.nome.contains(busca, true)) m
             else if (itens.isNotEmpty()) m.copy(itens = itens)
@@ -128,8 +129,10 @@ private fun CardMarca(marca: SenhasIHM.Marca) {
                         Text(item.titulo, fontWeight = FontWeight.SemiBold)
                         if (item.usuario.isNotBlank()) Linha("Usuário", item.usuario)
                         if (item.senha.isNotBlank()) Linha("Senha", item.senha)
-                        else Text("Senha: consultar material (ref. ${item.senhaRef})",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                        item.codigos.forEach { c -> Linha(c.nome, c.valor) }
+                        if (item.senha.isBlank() && item.codigos.isEmpty())
+                            Text("Senha: consultar material (ref. ${item.senhaRef})",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                         if (item.observacao.isNotBlank()) Linha("Observação", item.observacao)
                     }
                 }

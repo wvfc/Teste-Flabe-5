@@ -25,12 +25,14 @@ object SenhasIHM {
     private const val ASSET = "base_tecnica/senhas_ihm.json"
     private const val CACHE = "senhas_ihm_cache.json"
 
+    data class Codigo(val nome: String, val valor: String)
     data class Item(
         val titulo: String,
         val usuario: String,
         val senha: String,
         val senhaRef: String,
         val observacao: String,
+        val codigos: List<Codigo> = emptyList(),
     )
     data class Marca(val slug: String, val nome: String, val descricao: String, val itens: List<Item>)
 
@@ -122,6 +124,13 @@ object SenhasIHM {
         val itens = mutableListOf<Item>()
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
+            val codigos = mutableListOf<Codigo>()
+            o.optJSONArray("codigos")?.let { arrC ->
+                for (j in 0 until arrC.length()) {
+                    val c = arrC.optJSONObject(j) ?: continue
+                    codigos.add(Codigo(primeiro(c, "nome", "rotulo", "label", "name"), primeiro(c, "valor", "value", "codigo", "senha")))
+                }
+            }
             itens.add(
                 Item(
                     titulo = primeiro(o, "titulo", "título", "modelo", "model", "nome", "name"),
@@ -129,6 +138,7 @@ object SenhasIHM {
                     senha = primeiro(o, "senha", "password", "code", "codigo"),
                     senhaRef = primeiro(o, "senha_ref", "senharef", "ref"),
                     observacao = primeiro(o, "observacao", "observação", "obs", "nota", "note", "observacoes"),
+                    codigos = codigos,
                 )
             )
         }
