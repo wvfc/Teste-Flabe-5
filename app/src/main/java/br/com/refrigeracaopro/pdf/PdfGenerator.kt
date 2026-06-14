@@ -484,11 +484,16 @@ object PdfGenerator {
 
         // Cada seção do checklist vira uma tabela rótulo/valor (somente preenchidos)
         br.com.refrigeracaopro.data.RelatorioArComprimido.SECOES.forEach { secao ->
-            val linhas = secao.campos.map { campo ->
-                val v = valores[campo.chave].orEmpty()
-                val valorComUnidade = if (v.isBlank() || campo.sufixo.isBlank()) v else "$v ${campo.sufixo}"
-                campo.rotulo to valorComUnidade
-            }.filter { it.second.isNotBlank() }
+            val linhas = secao.campos.mapNotNull { campo ->
+                val valor = br.com.refrigeracaopro.data.RelatorioArComprimido.valorTexto(campo, valores)
+                val marcador = valores[br.com.refrigeracaopro.data.RelatorioArComprimido.chaveMarcador(campo)].orEmpty()
+                val texto = when {
+                    valor.isNotBlank() && marcador.isNotBlank() -> "$valor   [$marcador]"
+                    marcador.isNotBlank() -> "[$marcador]"
+                    else -> valor
+                }
+                if (texto.isBlank()) null else campo.rotulo to texto
+            }
             if (linhas.isNotEmpty()) {
                 b.secao(secao.titulo)
                 b.tabela(linhas)

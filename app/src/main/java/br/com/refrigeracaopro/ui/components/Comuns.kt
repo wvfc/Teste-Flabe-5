@@ -137,7 +137,7 @@ fun CampoMarcacao(
     aoSelecionar: (String) -> Unit,
 ) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(rotulo, style = MaterialTheme.typography.bodyMedium)
+        if (rotulo.isNotBlank()) Text(rotulo, style = MaterialTheme.typography.bodyMedium)
         androidx.compose.foundation.layout.FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
