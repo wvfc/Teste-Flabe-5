@@ -39,6 +39,7 @@ import br.com.refrigeracaopro.data.RelatorioArComprimido
 import br.com.refrigeracaopro.data.TipoRelatorio
 import br.com.refrigeracaopro.pdf.PdfGenerator
 import br.com.refrigeracaopro.ui.components.AssinaturaDialog
+import br.com.refrigeracaopro.ui.components.CampoMarcacao
 import br.com.refrigeracaopro.ui.components.CampoTexto
 import br.com.refrigeracaopro.ui.components.LinhaAssinatura
 import br.com.refrigeracaopro.ui.components.SecaoFotos
@@ -122,12 +123,28 @@ fun RelatorioArComprimidoFormScreen(nav: NavController, relatorioId: Long, vm: R
                 RelatorioArComprimido.SECOES.forEach { secao ->
                     TituloSecao(secao.titulo)
                     secao.campos.forEach { campo ->
-                        val rotulo = if (campo.sufixo.isBlank()) campo.rotulo else "${campo.rotulo} (${campo.sufixo})"
-                        CampoTexto(
-                            valor = valores[campo.chave] ?: "",
-                            aoMudar = { valores[campo.chave] = it },
-                            rotulo = rotulo,
-                        )
+                        when (campo.tipo) {
+                            RelatorioArComprimido.Tipo.TEXTO -> {
+                                val rotulo = if (campo.sufixo.isBlank()) campo.rotulo else "${campo.rotulo} (${campo.sufixo})"
+                                CampoTexto(
+                                    valor = valores[campo.chave] ?: "",
+                                    aoMudar = { valores[campo.chave] = it },
+                                    rotulo = rotulo,
+                                )
+                            }
+                            RelatorioArComprimido.Tipo.MARCACAO -> CampoMarcacao(
+                                rotulo = campo.rotulo,
+                                opcoes = RelatorioArComprimido.MARCADORES,
+                                selecionado = valores[campo.chave] ?: "",
+                                aoSelecionar = { valores[campo.chave] = it },
+                            )
+                            RelatorioArComprimido.Tipo.SIMNAO -> CampoMarcacao(
+                                rotulo = campo.rotulo,
+                                opcoes = RelatorioArComprimido.OPCOES_SIMNAO,
+                                selecionado = valores[campo.chave] ?: "",
+                                aoSelecionar = { valores[campo.chave] = it },
+                            )
+                        }
                     }
                 }
 

@@ -124,6 +124,34 @@ fun TituloSecao(texto: String) {
     )
 }
 
+/**
+ * Campo de marcação: um rótulo e uma linha de opções selecionáveis (chips).
+ * Tocar na opção já marcada a desmarca. Usado nos checklists (Ok / Reparado /
+ * Necessita reparo, ou Sim / Não).
+ */
+@Composable
+fun CampoMarcacao(
+    rotulo: String,
+    opcoes: List<String>,
+    selecionado: String,
+    aoSelecionar: (String) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(rotulo, style = MaterialTheme.typography.bodyMedium)
+        androidx.compose.foundation.layout.FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            opcoes.forEach { opcao ->
+                androidx.compose.material3.FilterChip(
+                    selected = selecionado == opcao,
+                    onClick = { aoSelecionar(if (selecionado == opcao) "" else opcao) },
+                    label = { Text(opcao, style = MaterialTheme.typography.labelMedium) },
+                )
+            }
+        }
+    }
+}
+
 /** Diálogo de confirmação de exclusão. */
 @Composable
 fun ConfirmarExclusao(titulo: String, aoConfirmar: () -> Unit, aoCancelar: () -> Unit) {
