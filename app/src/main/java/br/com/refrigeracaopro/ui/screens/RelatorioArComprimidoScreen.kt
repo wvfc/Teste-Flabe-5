@@ -1,5 +1,6 @@
 package br.com.refrigeracaopro.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,18 +44,21 @@ import androidx.navigation.NavController
 import br.com.refrigeracaopro.data.Relatorio
 import br.com.refrigeracaopro.data.RelatorioArComprimido
 import br.com.refrigeracaopro.data.TipoRelatorio
+import br.com.refrigeracaopro.ia.BaseTecnica
+import br.com.refrigeracaopro.ia.OpenAiClient
 import br.com.refrigeracaopro.pdf.PdfGenerator
 import br.com.refrigeracaopro.ui.components.AssinaturaDialog
 import br.com.refrigeracaopro.ui.components.CampoMarcacao
 import br.com.refrigeracaopro.ui.components.CampoTexto
 import br.com.refrigeracaopro.ui.components.LinhaAssinatura
-import br.com.refrigeracaopro.ui.components.SecaoFotos
+import br.com.refrigeracaopro.ui.components.SecaoFotosComObservacao
 import br.com.refrigeracaopro.ui.components.SeletorOpcoes
 import br.com.refrigeracaopro.ui.components.TelaBase
 import br.com.refrigeracaopro.ui.components.TituloSecao
 import br.com.refrigeracaopro.util.Arquivos
 import br.com.refrigeracaopro.viewmodel.RelatoriosViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.AutoAwesome
 
 /**
  * Formulário do relatório de inspeção de compressor de AR COMPRIMIDO, no padrão
@@ -82,6 +86,37 @@ fun RelatorioArComprimidoFormScreen(nav: NavController, relatorioId: Long, vm: R
     var assinarTecnico by remember { mutableStateOf(false) }
     var assinarCliente by remember { mutableStateOf(false) }
     var aba by remember { mutableStateOf(0) }
+    var carregandoIA by remember { mutableStateOf(false) }
+
+    // Gera a conclusão a partir de tudo que foi preenchido/selecionado no relatório
+    fun gerarConclusaoIA() {
+        if (!OpenAiClient.disponivel(context)) {
+            Toast.makeText(context, "Configure a chave OpenAI e conecte-se à internet.", Toast.LENGTH_LONG).show()
+            return
+        }
+        carregandoIA = true
+        escopo.launch {
+            val cliente = vm.buscarCliente(clienteId)
+            val equip = equipamentoId?.let { vm.buscarEquipamento(it) }
+            val dados = buildString {
+                append("Cliente: ").append(cliente?.nome ?: "—").append("\n")
+                equip?.let { append("Equipamento: ${it.tipo} ${it.marca} ${it.modelo}\n") }
+                append("\nDADOS DA INSPEÇÃO DO COMPRESSOR DE AR COMPRIMIDO:\n")
+                append(RelatorioArComprimido.resumoParaIA(valores))
+                if (recomendacoes.isNotBlank()) append("\nRecomendações do técnico: ").append(recomendacoes)
+            }
+            val instrucoes = "BASE TÉCNICA:\n" + BaseTecnica.resumoPara(context, "compressor ar comprimido inspeção") +
+                "\n\nGere um RELATÓRIO TÉCNICO de conclusão da inspeção, em texto corrido e profissional, " +
+                "destacando o estado geral, itens marcados como 'À Reparar' ou 'Reparado', medições relevantes e " +
+                "recomendações finais. Não use Markdown."
+            val r = OpenAiClient.perguntar(context, listOf("user" to dados), instrucoes)
+            when (r) {
+                is OpenAiClient.Resultado.Sucesso -> conclusao = r.texto
+                is OpenAiClient.Resultado.Erro -> Toast.makeText(context, r.mensagem, Toast.LENGTH_LONG).show()
+            }
+            carregandoIA = false
+        }
+    }
 
     LaunchedEffect(relatorioId) {
         if (relatorioId > 0) {
@@ -143,16 +178,39 @@ fun RelatorioArComprimidoFormScreen(nav: NavController, relatorioId: Long, vm: R
                     "Conclusão" -> {
                         TituloSecao("Recomendações e conclusão")
                         CampoTexto(recomendacoes, { recomendacoes = it }, "Recomendações técnicas", linhas = 4)
-                        CampoTexto(conclusao, { conclusao = it }, "Conclusão", linhas = 4)
+                        OutlinedButton(onClick = { gerarConclusaoIA() }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                            Icon(Icons.Default.AutoAwesome, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (carregandoIA) "Gerando relatório..." else "Gerar relatório com IA")
+                        }
+                        CampoTexto(conclusao, { conclusao = it }, "Conclusão / relatório", linhas = 8)
                     }
                     "Fotos" -> {
                         TituloSecao("Fotos da inspeção")
-                        SecaoFotos("Fotos", fotos) { fotos = it }
+                        SecaoFotosComObservacao(
+                            titulo = "Fotos",
+                            fotos = fotos,
+                            observacaoDe = { valores["foto::$it"] ?: "" },
+                            aoMudarFotos = { fotos = it },
+                            aoMudarObservacao = { caminho, obs -> valores["foto::$caminho"] = obs },
+                        )
                     }
                     "Assinaturas" -> {
                         TituloSecao("Assinaturas")
                         LinhaAssinatura("Técnico", assinaturaTecnico, { assinarTecnico = true }, { assinaturaTecnico = "" })
                         LinhaAssinatura("Cliente", assinaturaCliente, { assinarCliente = true }, { assinaturaCliente = "" })
+
+                        TituloSecao("Contato do cliente")
+                        SeletorOpcoes(
+                            "Tipo de contato", listOf("WhatsApp", "E-mail"),
+                            valores["contato_tipo"] ?: "",
+                            aoSelecionar = { valores["contato_tipo"] = it }
+                        )
+                        CampoTexto(
+                            valores["contato_valor"] ?: "",
+                            { valores["contato_valor"] = it },
+                            if ((valores["contato_tipo"] ?: "") == "E-mail") "E-mail do cliente" else "WhatsApp do cliente",
+                        )
                     }
                     else -> {
                         val secao = secoes.find { it.titulo == titulo } ?: secoes.first()
@@ -217,6 +275,15 @@ fun RelatorioArComprimidoFormScreen(nav: NavController, relatorioId: Long, vm: R
 @Composable
 private fun CampoArComprimido(campo: RelatorioArComprimido.Campo, valores: SnapshotStateMap<String, String>) {
     Text(campo.rotulo, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+    if (campo.opcoes.isNotEmpty()) {
+        SeletorOpcoes(
+            rotulo = "Selecione",
+            opcoes = campo.opcoes,
+            selecionado = valores[campo.chave] ?: "",
+            aoSelecionar = { valores[campo.chave] = it },
+        )
+        return
+    }
     if (campo.temValor) {
         val unico = campo.subRotulos.size == 1 && campo.subRotulos.first().isBlank()
         if (unico) {

@@ -112,6 +112,61 @@ fun SeletorOpcoes(
     }
 }
 
+/**
+ * Seção de fotos (galeria) em que cada imagem tem um campo de observação.
+ */
+@Composable
+fun SecaoFotosComObservacao(
+    titulo: String,
+    fotos: List<String>,
+    observacaoDe: (String) -> String,
+    aoMudarFotos: (List<String>) -> Unit,
+    aoMudarObservacao: (String, String) -> Unit,
+) {
+    val context = LocalContext.current
+    val galeria = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        val novas = uris.mapNotNull { Arquivos.copiarImagem(context, it) }
+        if (novas.isNotEmpty()) aoMudarFotos(fotos + novas)
+    }
+
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(titulo, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedButton(onClick = { galeria.launch("image/*") }, modifier = Modifier.padding(top = 6.dp)) {
+            Icon(Icons.Default.PhotoLibrary, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Adicionar da galeria")
+        }
+        fotos.forEach { caminho ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Box {
+                    AsyncImage(
+                        model = File(caminho),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(84.dp)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    )
+                    IconButton(
+                        onClick = { aoMudarFotos(fotos - caminho) },
+                        modifier = Modifier.align(Alignment.TopEnd).size(24.dp)
+                            .background(MaterialTheme.colorScheme.error, RoundedCornerShape(12.dp))
+                    ) {
+                        Icon(Icons.Default.Close, "Remover", tint = Color.White, modifier = Modifier.size(14.dp))
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                OutlinedTextField(
+                    value = observacaoDe(caminho),
+                    onValueChange = { aoMudarObservacao(caminho, it) },
+                    label = { Text("Observação da imagem") },
+                    modifier = Modifier.weight(1f),
+                    minLines = 2,
+                )
+            }
+        }
+    }
+}
+
 /** Título de seção dos formulários. */
 @Composable
 fun TituloSecao(texto: String) {

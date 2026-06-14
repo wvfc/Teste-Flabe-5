@@ -231,6 +231,39 @@ object PdfGenerator {
             }
             y += 85f
         }
+
+        /** Fotos com legenda (observação) abaixo de cada imagem. */
+        fun fotosComLegenda(titulo: String, itens: List<Pair<String, String>>) {
+            val existentes = itens.filter { File(it.first).exists() }
+            if (existentes.isEmpty()) return
+            secao(titulo)
+            val larguraFoto = (LARGURA - 2 * MARGEM - 12f) / 2f
+            val alturaFoto = larguraFoto * 0.75f
+            var i = 0
+            while (i < existentes.size) {
+                garantirEspaco(alturaFoto + 34f)
+                val linha = existentes.subList(i, minOf(i + 2, existentes.size))
+                linha.forEachIndexed { col, (caminho, _) ->
+                    BitmapFactory.decodeFile(caminho)?.let { bmp ->
+                        val x = MARGEM + col * (larguraFoto + 12f)
+                        val destino = Rect(x.toInt(), y.toInt(), (x + larguraFoto).toInt(), (y + alturaFoto).toInt())
+                        canvas().drawBitmap(bmp, null, destino, null)
+                        bmp.recycle()
+                    }
+                }
+                // Legendas abaixo
+                val yLegenda = y + alturaFoto + 11f
+                linha.forEachIndexed { col, (_, obs) ->
+                    if (obs.isNotBlank()) {
+                        val x = MARGEM + col * (larguraFoto + 12f)
+                        val texto = if (obs.length > 45) obs.take(44) + "…" else obs
+                        canvas().drawText(texto, x, yLegenda, pequenoPaint)
+                    }
+                }
+                y += alturaFoto + 24f
+                i += 2
+            }
+        }
     }
 
     private fun dadosCliente(cliente: Cliente?) = listOf(
@@ -503,10 +536,20 @@ object PdfGenerator {
         if (rel.recomendacoes.isNotBlank()) { b.secao("Recomendações técnicas"); b.paragrafo(rel.recomendacoes) }
         if (rel.conclusao.isNotBlank()) { b.secao("Conclusão"); b.paragrafo(rel.conclusao) }
 
-        b.fotos("Fotos da inspeção", Arquivos.textoParaLista(rel.fotosAntes))
+        // Fotos com observação por imagem
+        val fotosComObs = Arquivos.textoParaLista(rel.fotosAntes).map { it to (valores["foto::$it"].orEmpty()) }
+        b.fotosComLegenda("Fotos da inspeção", fotosComObs)
 
         b.secao("Avisos técnicos e de segurança")
         b.paragrafo(br.com.refrigeracaopro.data.Avisos.SEGURANCA.joinToString("\n") { "• $it" })
+
+        // Contato informado pelo cliente
+        val contatoTipo = valores["contato_tipo"].orEmpty()
+        val contatoValor = valores["contato_valor"].orEmpty()
+        if (contatoValor.isNotBlank()) {
+            b.secao("Contato do cliente")
+            b.camposDuasColunas(listOf((contatoTipo.ifBlank { "Contato" }) to contatoValor))
+        }
 
         b.assinaturas(
             listOf(
