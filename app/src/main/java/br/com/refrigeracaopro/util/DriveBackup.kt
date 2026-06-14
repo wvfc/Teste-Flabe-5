@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit
  * backup. Requer um cliente OAuth Android no Google Cloud configurado com o
  * nome do pacote (applicationId) e o SHA-1 da chave de assinatura do app.
  */
+@Suppress("DEPRECATION")
 object DriveBackup {
 
     const val ESCOPO_APPDATA = "https://www.googleapis.com/auth/drive.appdata"

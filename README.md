@@ -43,8 +43,11 @@ Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e
 ### Fotos
 As fotos (equipamentos, OS e relatórios) são adicionadas **pela galeria**. As imagens são copiadas para o armazenamento interno, têm a rotação corrigida (EXIF) e são **comprimidas** antes de salvar/exportar.
 
-### Sessão
-Após o primeiro login, a sessão fica ativa e o app **não pede login novamente** ao reabrir.
+### Login e sessão
+O acesso principal é **direto pela conta Google** (que de quebra já concede o escopo de backup no Drive). Há ainda um **login local opcional** (offline) com usuário/senha. Após o primeiro login, a sessão fica ativa e o app **não pede login novamente** ao reabrir.
+
+### Backup automático
+Em Configurações é possível ligar o **backup automático** no Google Drive, com frequência **diária** ou **semanal** (executado em segundo plano via WorkManager, somente com internet). O backup manual ("Enviar backup") continua disponível.
 
 ### Backup no Google Drive (appDataFolder)
 O app pode guardar o banco de dados na **pasta privada do app no Google Drive** (`appDataFolder`, invisível ao usuário). Em **Configurações → Backup na nuvem** há login com a conta Google e botões de enviar/restaurar.

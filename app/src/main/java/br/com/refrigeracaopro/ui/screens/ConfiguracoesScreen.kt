@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import br.com.refrigeracaopro.data.Prefs
+import br.com.refrigeracaopro.data.Prefs.backupAutomatico
+import br.com.refrigeracaopro.data.Prefs.backupFrequencia
 import br.com.refrigeracaopro.data.Prefs.chaveOpenAi
 import br.com.refrigeracaopro.data.Prefs.cnpjEmpresa
 import br.com.refrigeracaopro.data.Prefs.emailEmpresa
@@ -239,6 +241,8 @@ private fun BackupDriveSecao() {
         mutableStateOf(com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context))
     }
     var ocupado by remember { mutableStateOf(false) }
+    var backupAuto by remember { mutableStateOf(context.backupAutomatico) }
+    var frequencia by remember { mutableStateOf(context.backupFrequencia) }
 
     val login = rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -297,8 +301,36 @@ private fun BackupDriveSecao() {
                 modifier = Modifier.weight(1f).padding(start = 4.dp)
             ) { Text("Restaurar") }
         }
+        // Backup automático (WorkManager) — diário ou semanal
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Backup automático", Modifier.weight(1f))
+            Switch(checked = backupAuto, onCheckedChange = {
+                backupAuto = it
+                context.backupAutomatico = it
+                br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
+            })
+        }
+        if (backupAuto) {
+            SeletorOpcoes("Frequência", listOf("Diária", "Semanal"), frequencia, { sel ->
+                frequencia = sel
+                context.backupFrequencia = sel
+                br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
+            })
+            Text(
+                "O envio ocorre em segundo plano quando houver internet. O Android pode " +
+                    "ajustar o horário exato para economizar bateria.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         androidx.compose.material3.TextButton(onClick = {
-            cliente().signOut().addOnCompleteListener { conta = null }
+            cliente().signOut().addOnCompleteListener {
+                conta = null
+                // Sem conta conectada, desliga o backup automático
+                backupAuto = false
+                context.backupAutomatico = false
+                br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
+            }
         }) { Text("Desconectar") }
     }
 }

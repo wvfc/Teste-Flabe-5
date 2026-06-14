@@ -83,4 +83,14 @@ object Prefs {
     var Context.sessaoAtiva: Boolean
         get() = config(this).getBoolean("sessao_ativa", false)
         set(v) = config(this).edit().putBoolean("sessao_ativa", v).apply()
+
+    // ----- Backup automático no Google Drive -----
+    var Context.backupAutomatico: Boolean
+        get() = config(this).getBoolean("backup_auto", false)
+        set(v) = config(this).edit().putBoolean("backup_auto", v).apply()
+
+    /** "Diária" ou "Semanal". */
+    var Context.backupFrequencia: String
+        get() = config(this).getString("backup_freq", "Diária") ?: "Diária"
+        set(v) = config(this).edit().putString("backup_freq", v).apply()
 }

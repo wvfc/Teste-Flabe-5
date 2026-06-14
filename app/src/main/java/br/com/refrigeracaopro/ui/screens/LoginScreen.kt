@@ -1,5 +1,7 @@
 package br.com.refrigeracaopro.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,14 +11,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -46,9 +51,11 @@ import kotlinx.coroutines.launch
 import android.widget.Toast
 
 /**
- * Tela de login local (offline). No primeiro acesso, cria o usuário
- * administrador. Permite redefinir a senha via pergunta de segurança.
+ * Tela de login. O acesso principal é pela conta Google (que também concede o
+ * escopo de backup no Drive). Há ainda um login local (offline) opcional, com
+ * criação de administrador no primeiro acesso e recuperação de senha.
  */
+@Suppress("DEPRECATION")
 @Composable
 fun LoginScreen(aoEntrar: () -> Unit, vm: LoginViewModel = viewModel()) {
     val context = LocalContext.current
@@ -67,6 +74,23 @@ fun LoginScreen(aoEntrar: () -> Unit, vm: LoginViewModel = viewModel()) {
     var pergunta by remember { mutableStateOf("") }
     var resposta by remember { mutableStateOf("") }
     var mostrarRecuperacao by remember { mutableStateOf(false) }
+    var mostrarLocal by remember { mutableStateOf(false) }
+
+    // Login direto pela conta Google (também concede o escopo de backup no Drive)
+    val loginGoogle = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { resultado ->
+        val task = com.google.android.gms.auth.api.signin.GoogleSignIn
+            .getSignedInAccountFromIntent(resultado.data)
+        try {
+            task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+            aoEntrar()
+        } catch (e: com.google.android.gms.common.api.ApiException) {
+            Toast.makeText(context, "Não foi possível entrar com o Google (código ${e.statusCode}).", Toast.LENGTH_LONG).show()
+        }
+    }
+    fun clienteGoogle() = com.google.android.gms.auth.api.signin.GoogleSignIn
+        .getClient(context, br.com.refrigeracaopro.util.DriveBackup.opcoesLogin())
 
     Column(
         modifier = Modifier
@@ -93,6 +117,25 @@ fun LoginScreen(aoEntrar: () -> Unit, vm: LoginViewModel = viewModel()) {
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(20.dp)) {
+                // ----- Login principal: conta Google -----
+                Text("Entrar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = { loginGoogle.launch(clienteGoogle().signInIntent) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    Icon(Icons.Default.AccountCircle, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Entrar com Google")
+                }
+                TextButton(
+                    onClick = { mostrarLocal = !mostrarLocal },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) { Text(if (mostrarLocal) "Ocultar login local" else "Entrar com usuário local (offline)") }
+
+                if (!mostrarLocal) return@Column
+
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
                 if (temUsuario == false) {
                     // ----- Primeiro acesso: criar administrador -----
                     Text("Primeiro acesso", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -118,8 +161,8 @@ fun LoginScreen(aoEntrar: () -> Unit, vm: LoginViewModel = viewModel()) {
                         modifier = Modifier.fillMaxWidth().height(52.dp)
                     ) { Text("Criar e entrar") }
                 } else {
-                    // ----- Login -----
-                    Text("Entrar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    // ----- Login local (offline) -----
+                    Text("Login local", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(usuario, { usuario = it }, label = { Text("Usuário") }, modifier = Modifier.fillMaxWidth())
                     OutlinedTextField(
