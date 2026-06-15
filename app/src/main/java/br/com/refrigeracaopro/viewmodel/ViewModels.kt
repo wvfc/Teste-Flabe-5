@@ -294,6 +294,39 @@ class RelatoriosViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun buscarOS(id: Long): OrdemServico? = db().ordemServicoDao().buscar(id)
 }
 
+// ---------- Projetos isométricos ----------
+class ProjetosViewModel(app: Application) : AndroidViewModel(app) {
+    private val dao = db().projetoDao()
+
+    val projetos: StateFlow<List<br.com.refrigeracaopro.data.Projeto>> =
+        dao.listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val clientes: StateFlow<List<Cliente>> =
+        db().clienteDao().listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun salvar(projeto: br.com.refrigeracaopro.data.Projeto, aoConcluir: (Long) -> Unit = {}) {
+        viewModelScope.launch { aoConcluir(dao.salvar(projeto.copy(atualizadoEm = System.currentTimeMillis()))) }
+    }
+
+    fun duplicar(projeto: br.com.refrigeracaopro.data.Projeto, aoConcluir: () -> Unit = {}) {
+        viewModelScope.launch {
+            dao.salvar(projeto.copy(id = 0, nome = projeto.nome + " (cópia)", favorito = false,
+                criadoEm = System.currentTimeMillis(), atualizadoEm = System.currentTimeMillis()))
+            aoConcluir()
+        }
+    }
+
+    fun favoritar(projeto: br.com.refrigeracaopro.data.Projeto) {
+        viewModelScope.launch { dao.salvar(projeto.copy(favorito = !projeto.favorito)) }
+    }
+
+    fun excluir(projeto: br.com.refrigeracaopro.data.Projeto) {
+        viewModelScope.launch { dao.excluir(projeto) }
+    }
+
+    suspend fun buscar(id: Long): br.com.refrigeracaopro.data.Projeto? = dao.buscar(id)
+}
+
 // ---------- Gestão financeira ----------
 class GestaoViewModel(app: Application) : AndroidViewModel(app) {
     private val dao = db().lancamentoDao()

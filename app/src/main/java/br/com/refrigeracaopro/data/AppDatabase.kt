@@ -15,8 +15,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
+        Projeto::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -28,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun relatorioDao(): RelatorioDao
     abstract fun agendamentoDao(): AgendamentoDao
     abstract fun lancamentoDao(): LancamentoDao
+    abstract fun projetoDao(): ProjetoDao
 
     companion object {
         const val NOME_BANCO = "refrigeracao_pro.db"
@@ -77,13 +79,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 5→6: tabela de projetos isométricos. */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS projetos (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                        "nome TEXT NOT NULL, clienteId INTEGER, equipamento TEXT NOT NULL, " +
+                        "local TEXT NOT NULL, responsavel TEXT NOT NULL, data TEXT NOT NULL, " +
+                        "pressaoTrabalho TEXT NOT NULL, fluido TEXT NOT NULL, vazao TEXT NOT NULL, " +
+                        "temperatura TEXT NOT NULL, observacoes TEXT NOT NULL, favorito INTEGER NOT NULL, " +
+                        "estado TEXT NOT NULL, criadoEm INTEGER NOT NULL, atualizadoEm INTEGER NOT NULL)"
+                )
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     NOME_BANCO
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instancia = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .build().also { instancia = it }
             }
 
         /** Fecha o banco (usado antes de backup/restauração). */

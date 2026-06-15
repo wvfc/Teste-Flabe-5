@@ -228,6 +228,32 @@ object PdfGenerator {
             bmp.recycle()
         }
 
+        /** Desenha um bitmap (ex.: imagem do projeto) ocupando a largura útil. */
+        fun imagem(bmp: Bitmap) {
+            val larg = LARGURA - 2 * MARGEM
+            val alt = larg * bmp.height / bmp.width.coerceAtLeast(1)
+            garantirEspaco(alt + 6f)
+            val destino = Rect(MARGEM.toInt(), y.toInt(), (MARGEM + larg).toInt(), (y + alt).toInt())
+            canvas().drawBitmap(bmp, null, destino, imgPaint)
+            // moldura
+            canvas().drawRect(destino, Paint().apply { color = CINZA; style = Paint.Style.STROKE; strokeWidth = 1f })
+            y += alt + 8f
+        }
+
+        /** Legenda de cores das linhas/fluidos. */
+        fun legendaCores(itens: List<Pair<String, Int>>) {
+            garantirEspaco(20f)
+            var x = MARGEM
+            itens.forEach { (rotulo, cor) ->
+                val largura = textoPaint.measureText(rotulo) + 22f
+                if (x + largura > LARGURA - MARGEM) { x = MARGEM; y += 16f; garantirEspaco(16f) }
+                canvas().drawRect(x, y - 8f, x + 12f, y + 2f, Paint().apply { color = cor })
+                canvas().drawText(rotulo, x + 16f, y, textoPaint)
+                x += largura + 8f
+            }
+            y += 14f
+        }
+
         /** Grade de fotos (2 por linha). */
         fun fotos(titulo: String, caminhos: List<String>) {
             val existentes = caminhos.filter { File(it).exists() }
@@ -592,6 +618,73 @@ object PdfGenerator {
 
         b.fecharPagina()
         val arquivo = File(Arquivos.pastaPdfs(context), "${rel.numero}.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    /** Gera o PDF do projeto isométrico (imagem + cálculos + materiais). */
+    fun gerarProjetoIso(
+        context: Context,
+        projeto: br.com.refrigeracaopro.data.Projeto,
+        cliente: Cliente?,
+        imagem: Bitmap,
+        calc: br.com.refrigeracaopro.data.CalculosProjeto.Resultado,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+
+        b.cabecalho("PROJETO ISOMÉTRICO", projeto.nome)
+
+        b.secao("Dados do projeto")
+        b.camposDuasColunas(
+            listOf(
+                "Cliente" to (cliente?.nome ?: ""),
+                "Equipamento" to projeto.equipamento,
+                "Local" to projeto.local,
+                "Responsável" to projeto.responsavel,
+                "Data" to projeto.data,
+                "Pressão de trabalho" to projeto.pressaoTrabalho,
+                "Fluido" to projeto.fluido,
+                "Vazão" to projeto.vazao,
+                "Temperatura" to projeto.temperatura,
+            )
+        )
+
+        b.secao("Desenho isométrico")
+        b.imagem(imagem)
+        b.legendaCores(
+            br.com.refrigeracaopro.data.FluidosLinha.TODOS.map { it to br.com.refrigeracaopro.data.FluidosLinha.cor(it).toInt() }
+        )
+
+        b.secao("Cálculos (aproximados)")
+        b.tabela(
+            listOf(
+                "Comprimento total" to "%.1f m".format(calc.comprimentoTotal),
+                "Comprimento equivalente" to "%.1f m".format(calc.comprimentoEquivalente),
+                "Curvas" to calc.qtdCurvas.toString(),
+                "Tees" to calc.qtdTees.toString(),
+                "Válvulas" to calc.qtdValvulas.toString(),
+                "Registros" to calc.qtdRegistros.toString(),
+                "Filtros" to calc.qtdFiltros.toString(),
+                "Conexões" to calc.qtdConexoes.toString(),
+                "Velocidade do fluido" to (calc.velocidade?.let { "%.2f m/s".format(it) } ?: ""),
+                "Perda de carga aprox." to (calc.perdaCarga?.let { "%.2f bar".format(it) } ?: ""),
+                "Pressão estimada" to (calc.pressaoEstimada?.let { "%.2f bar".format(it) } ?: ""),
+                "Sugestão de diâmetro" to calc.sugestaoDiametro,
+            )
+        )
+
+        b.secao("Lista de materiais")
+        b.tabela(calc.materiais.map { ("${it.quantidade}× ${it.descricao}") to it.detalhe })
+
+        if (projeto.observacoes.isNotBlank()) { b.secao("Observações"); b.paragrafo(projeto.observacoes) }
+
+        b.assinaturas(listOf((projeto.responsavel.ifBlank { "Responsável" }) to ""))
+
+        b.fecharPagina()
+        val arquivo = File(Arquivos.pastaPdfs(context), "projeto-${projeto.id}.pdf")
         arquivo.outputStream().use { doc.writeTo(it) }
         doc.close()
         return arquivo

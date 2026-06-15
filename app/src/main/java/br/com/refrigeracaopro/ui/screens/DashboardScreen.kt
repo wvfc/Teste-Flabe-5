@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Architecture
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Science
@@ -61,6 +62,7 @@ fun DashboardScreen(nav: NavController) {
         Modulo("Cadastros", Icons.Default.FolderShared, "cadastros"),
         Modulo("Ordens de Serviço", Icons.Default.Engineering, "ordens"),
         Modulo("Relatórios", Icons.Default.Description, "relatorios"),
+        Modulo("Projetos", Icons.Default.Architecture, "projetos"),
         Modulo("Agendamentos", Icons.Default.CalendarMonth, "agendamentos"),
         Modulo("Ferramentas", Icons.Default.Build, "ferramentas"),
         Modulo("Gestão Financeira", Icons.Default.MonetizationOn, "gestao"),

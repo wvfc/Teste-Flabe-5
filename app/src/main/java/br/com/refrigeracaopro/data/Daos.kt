@@ -142,6 +142,21 @@ interface LancamentoDao {
 }
 
 @Dao
+interface ProjetoDao {
+    @Query("SELECT * FROM projetos ORDER BY atualizadoEm DESC")
+    fun listar(): Flow<List<Projeto>>
+
+    @Query("SELECT * FROM projetos WHERE id = :id")
+    suspend fun buscar(id: Long): Projeto?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun salvar(projeto: Projeto): Long
+
+    @Delete
+    suspend fun excluir(projeto: Projeto)
+}
+
+@Dao
 interface AgendamentoDao {
     @Query("SELECT * FROM agendamentos ORDER BY dataHora")
     fun listar(): Flow<List<Agendamento>>

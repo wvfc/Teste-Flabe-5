@@ -36,6 +36,9 @@ import br.com.refrigeracaopro.ui.screens.GasesScreen
 import br.com.refrigeracaopro.ui.screens.LoginScreen
 import br.com.refrigeracaopro.ui.screens.OrdemServicoFormScreen
 import br.com.refrigeracaopro.ui.screens.OrdensServicoScreen
+import br.com.refrigeracaopro.ui.screens.EditorIsoScreen
+import br.com.refrigeracaopro.ui.screens.ProjetoCadastroScreen
+import br.com.refrigeracaopro.ui.screens.ProjetosScreen
 import br.com.refrigeracaopro.ui.screens.RelatorioArComprimidoFormScreen
 import br.com.refrigeracaopro.ui.screens.RelatorioFormScreen
 import br.com.refrigeracaopro.ui.screens.RelatoriosScreen
@@ -146,6 +149,17 @@ class MainActivity : ComponentActivity() {
                         composable("gestao") { GestaoScreen(nav) }
                         composable("conversor") { ConversorScreen(nav) }
                         composable("senhas_ihm") { SenhasIHMScreen(nav) }
+
+                        composable("projetos") { ProjetosScreen(nav) }
+                        composable(
+                            "projetos/cadastro?id={id}",
+                            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = 0L })
+                        ) { ProjetoCadastroScreen(nav, it.arguments?.getLong("id") ?: 0L) }
+                        composable(
+                            "projetos/editor?id={id}",
+                            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = 0L })
+                        ) { EditorIsoScreen(nav, it.arguments?.getLong("id") ?: 0L) }
+
                         composable("assistente") { AssistenteIAScreen(nav) }
                         composable("configuracoes") { ConfiguracoesScreen(nav) }
                     }
