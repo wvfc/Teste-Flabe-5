@@ -31,7 +31,9 @@ import androidx.compose.material.icons.filled.GridOn
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Rotate90DegreesCw
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.AlertDialog
@@ -109,6 +111,8 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
     var tamanho by remember { mutableStateOf(IntSize(1, 1)) }
     var modoConexao by remember { mutableStateOf(false) }
     var fluidoAtual by remember { mutableStateOf(FluidosLinha.AR_COMPRIMIDO) }
+    var modo3d by remember { mutableStateOf(false) }
+    var azimute by remember { mutableStateOf(0) }
 
     var mostrarBiblioteca by remember { mutableStateOf(false) }
     var mostrarCalculos by remember { mutableStateOf(false) }
@@ -208,9 +212,11 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
         if (dist <= RenderizadorProjeto.COMP_W * 1.2) conectar(id, alvo.id)
     }
 
-    val bitmap = remember(estado, escala, offX, offY, grade, selecionado, tamanho) {
-        RenderizadorProjeto.render(estado, tamanho.width, tamanho.height, escala, offX, offY, grade, selecionado)
-            .asImageBitmap()
+    val bitmap = remember(estado, escala, offX, offY, grade, selecionado, tamanho, modo3d, azimute) {
+        if (modo3d)
+            RenderizadorProjeto.render3d(estado, tamanho.width, tamanho.height, escala, offX, offY, grade, azimute).asImageBitmap()
+        else
+            RenderizadorProjeto.render(estado, tamanho.width, tamanho.height, escala, offX, offY, grade, selecionado).asImageBitmap()
     }
 
     Scaffold(
@@ -229,14 +235,23 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
                     IconButton(onClick = { if (refazer.isNotEmpty()) { desfazer.addLast(estado); estado = refazer.removeLast(); salvarAuto() } }) {
                         Icon(Icons.AutoMirrored.Filled.Redo, "Refazer", tint = Color.White)
                     }
+                    if (modo3d) {
+                        IconButton(onClick = { azimute = (azimute + 90) % 360 }) {
+                            Icon(Icons.Default.ScreenRotation, "Girar câmera", tint = Color.White)
+                        }
+                    }
+                    IconButton(onClick = { modo3d = !modo3d; selecionado = null; modoConexao = false }) {
+                        Icon(Icons.Default.ViewInAr, if (modo3d) "Ver em 2D" else "Ver em 3D",
+                            tint = if (modo3d) Color(0xFF7BD3A8) else Color.White)
+                    }
                     IconButton(onClick = { grade = !grade }) { Icon(Icons.Default.GridOn, "Grade", tint = Color.White) }
                     IconButton(onClick = { menuExport = true }) { Icon(Icons.Default.MoreVert, "Mais", tint = Color.White) }
                     DropdownMenu(expanded = menuExport, onDismissRequest = { menuExport = false }) {
                         DropdownMenuItem(text = { Text("Dados do projeto") }, onClick = { menuExport = false; nav.navigate("projetos/cadastro?id=$projetoId") })
-                        DropdownMenuItem(text = { Text("Exportar PNG") }, onClick = { menuExport = false; exportarPng(context, estado, projeto) })
-                        DropdownMenuItem(text = { Text("Exportar PDF") }, onClick = {
+                        DropdownMenuItem(text = { Text("Exportar PNG (${if (modo3d) "3D" else "2D"})") }, onClick = { menuExport = false; exportarPng(context, estado, projeto, modo3d, azimute) })
+                        DropdownMenuItem(text = { Text("Exportar PDF (${if (modo3d) "3D" else "2D"})") }, onClick = {
                             menuExport = false
-                            escopo.launch { exportarPdf(context, estado, projeto, clientes) }
+                            escopo.launch { exportarPdf(context, estado, projeto, clientes, modo3d, azimute) }
                         })
                         DropdownMenuItem(text = { Text("Exportar CSV (materiais)") }, onClick = { menuExport = false; exportarCsv(context, estado, projeto ?: Projeto()) })
                     }
@@ -255,8 +270,9 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
                         if (tamanho.width <= 1) { offX = it.width / 2f; offY = it.height / 2f }
                         tamanho = it
                     }
-                    .pointerInput(estado, escala, offX, offY, modoConexao) {
+                    .pointerInput(estado, escala, offX, offY, modoConexao, modo3d) {
                         detectTapGestures { tap ->
+                            if (modo3d) return@detectTapGestures
                             val c = acharComponente(tap.x, tap.y)
                             if (modoConexao && c != null && selecionado != null && c.id != selecionado) {
                                 conectar(selecionado!!, c.id); modoConexao = false
@@ -265,12 +281,12 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
                             }
                         }
                     }
-                    .pointerInput(escala) {
+                    .pointerInput(escala, modo3d) {
                         var arrastandoId: Long? = null
                         var preDrag: EstadoProjeto? = null
                         detectDragGestures(
                             onDragStart = { pos ->
-                                val c = acharComponente(pos.x, pos.y)
+                                val c = if (modo3d) null else acharComponente(pos.x, pos.y)
                                 arrastandoId = c?.id
                                 if (c != null) { selecionado = c.id; preDrag = estado }
                             },
@@ -307,8 +323,8 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
                 }
             }
 
-            // Barra do componente selecionado
-            if (selecionado != null) {
+            // Barra do componente selecionado (apenas na edição 2D)
+            if (selecionado != null && !modo3d) {
                 Row(
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceAround
@@ -461,20 +477,29 @@ private fun PropriedadesDialog(comp: CompIso, aoSalvar: (CompIso) -> Unit, aoFec
 
 // ---------- Exportações ----------
 
-private fun exportarPng(context: android.content.Context, estado: EstadoProjeto, projeto: Projeto?) {
-    val v = RenderizadorProjeto.enquadrar(estado, 1600, 1100)
-    val bmp = RenderizadorProjeto.render(estado, 1600, 1100, v.escala, v.offX, v.offY, true, null)
+private fun renderExport(estado: EstadoProjeto, modo3d: Boolean, azimute: Int): android.graphics.Bitmap {
+    val w = 1600; val h = 1100
+    return if (modo3d) {
+        val e = RenderizadorProjeto.enquadrar3d(estado, w, h, azimute)
+        RenderizadorProjeto.render3d(estado, w, h, e, 0f, 0f, true, azimute)
+    } else {
+        val v = RenderizadorProjeto.enquadrar(estado, w, h)
+        RenderizadorProjeto.render(estado, w, h, v.escala, v.offX, v.offY, true, null)
+    }
+}
+
+private fun exportarPng(context: android.content.Context, estado: EstadoProjeto, projeto: Projeto?, modo3d: Boolean, azimute: Int) {
+    val bmp = renderExport(estado, modo3d, azimute)
     val caminho = Arquivos.salvarBitmap(context, bmp, "projeto")
     Arquivos.compartilhar(context, File(caminho), "image/png", projeto?.nome ?: "Projeto")
 }
 
 private suspend fun exportarPdf(
     context: android.content.Context, estado: EstadoProjeto, projeto: Projeto?,
-    clientes: List<br.com.refrigeracaopro.data.Cliente>,
+    clientes: List<br.com.refrigeracaopro.data.Cliente>, modo3d: Boolean, azimute: Int,
 ) {
     val p = projeto ?: return
-    val v = RenderizadorProjeto.enquadrar(estado, 1600, 1100)
-    val bmp = RenderizadorProjeto.render(estado, 1600, 1100, v.escala, v.offX, v.offY, true, null)
+    val bmp = renderExport(estado, modo3d, azimute)
     val calc = CalculosProjeto.calcular(estado, p)
     val cliente = clientes.find { it.id == p.clienteId }
     val pdf = PdfGenerator.gerarProjetoIso(context, p, cliente, bmp, calc)
