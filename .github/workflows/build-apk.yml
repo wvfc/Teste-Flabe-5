@@ -22,6 +22,11 @@ jobs:
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # Não instala o pacote obsoleto "tools" (que baixa o emulador e às vezes
+          # falha com "Error on ZipFile unknown archive"). O Android Gradle Plugin
+          # baixa a plataforma e o build-tools necessários automaticamente.
+          packages: platform-tools
 
       - name: Cache do Gradle
         uses: actions/cache@v4
