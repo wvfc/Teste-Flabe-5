@@ -95,16 +95,15 @@ object FluidosLinha {
     }
 }
 
-/** Catálogo de componentes por categoria (conforme a biblioteca pedida). */
+/** Catálogo de componentes por categoria (biblioteca do módulo CAD). */
 object CatalogoComponentes {
     val CATEGORIAS: List<Pair<String, List<String>>> = listOf(
-        "Tubulação" to listOf("Tubo reto", "Tubo vertical", "Tubo flexível"),
-        "Conexões" to listOf("Curva 90°", "Curva 45°", "Curva longa", "Curva curta", "União", "Luva", "Niple", "Cruzeta", "Tee", "Tee Redução", "Redução Concêntrica", "Redução Excêntrica"),
-        "Válvulas" to listOf("Registro esfera", "Registro gaveta", "Válvula retenção", "Válvula segurança", "Válvula solenóide", "Válvula expansão", "Válvula agulha", "Schraders"),
-        "Filtros" to listOf("Filtro secador", "Filtro de sucção", "Separador de óleo", "Separador de líquido"),
-        "Equipamentos" to listOf("Compressor", "Condensadora", "Evaporadora", "Reservatório", "Secador", "Booster", "Chiller", "Torre", "Bomba", "Painel elétrico"),
+        "Tubulações" to listOf("Cobre", "Alumínio", "Inox", "Aço carbono", "Galvanizado", "PPR", "PEAD"),
+        "Conexões" to listOf("Curva 90°", "Curva 45°", "Curva raio longo", "Curva raio curto", "Tee", "Tee Redução", "Cruzeta", "União", "Luva", "Niple", "Redução", "Flange"),
+        "Válvulas" to listOf("Esfera", "Gaveta", "Globo", "Retenção", "Segurança", "Solenóide", "Expansão termostática", "Expansão eletrônica", "Agulha"),
+        "Refrigeração" to listOf("Compressor hermético", "Compressor Scroll", "Compressor Semi-hermético", "Compressor Parafuso", "Condensadora", "Evaporadora", "Chiller", "Separador óleo", "Separador líquido", "Filtro secador", "Visor de líquido", "Acumulador sucção"),
+        "Ar comprimido" to listOf("Compressor", "Reservatório", "Secador", "Booster", "Purgador", "Filtro coalescente", "Regulador", "Lubrificador"),
         "Instrumentação" to listOf("Pressostato", "Manômetro", "Sensor temperatura", "Fluxostato", "Medidor vazão"),
-        "Consumidores" to listOf("Máquina", "Laser", "Cilindro pneumático", "Pistola", "Máquina CNC", "Outro"),
     )
 
     /** Abreviação para o símbolo no desenho. */

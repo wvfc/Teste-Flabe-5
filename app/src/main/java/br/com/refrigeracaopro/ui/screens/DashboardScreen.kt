@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.ViewInAr
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -98,6 +99,7 @@ fun CadastrosScreen(nav: NavController) {
 @Composable
 fun FerramentasScreen(nav: NavController) {
     val modulos = listOf(
+        Modulo("CAD 3D", Icons.Default.ViewInAr, "projetos"),
         Modulo("Consulta de Gases", Icons.Default.Science, "gases"),
         Modulo("Cálculos", Icons.Default.Calculate, "calculos"),
         Modulo("Motores/Compressores", Icons.Default.Memory, "compressores"),

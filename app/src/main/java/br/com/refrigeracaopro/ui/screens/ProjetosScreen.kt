@@ -50,7 +50,7 @@ fun ProjetosScreen(nav: NavController, vm: ProjetosViewModel = viewModel()) {
 
     val lista = if (soFavoritos) projetos.filter { it.favorito } else projetos
 
-    TelaBase(nav, "Projetos", aoAdicionar = { nav.navigate("projetos/cadastro?id=0") }) { padding ->
+    TelaBase(nav, "CAD 3D", aoAdicionar = { nav.navigate("projetos/cadastro?id=0") }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 FilterChip(selected = !soFavoritos, onClick = { soFavoritos = false }, label = { Text("Histórico") })

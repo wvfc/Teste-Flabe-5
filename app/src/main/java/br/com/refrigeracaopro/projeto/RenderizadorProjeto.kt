@@ -9,20 +9,23 @@ import android.graphics.RectF
 import br.com.refrigeracaopro.data.CompIso
 import br.com.refrigeracaopro.data.EstadoProjeto
 import br.com.refrigeracaopro.data.FluidosLinha
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.tan
 
 /**
  * Desenha o projeto em um Bitmap. Dois modos:
  *  - 2D: planta com símbolos técnicos (estilo CAD) e grade isométrica.
- *  - 3D: projeção isométrica com blocos extrudados e tubos, com rotação de
- *    câmera (azimute) — visão tridimensional, tudo offline no Canvas.
+ *  - 3D: projeção ortográfica com órbita livre de câmera (yaw/pitch), blocos
+ *    extrudados e tubos contínuos — visão tridimensional, tudo offline no Canvas.
  */
 object RenderizadorProjeto {
 
     const val COMP_W = 74f
     const val COMP_H = 46f
     private const val LIFT = 0.6f // fator de elevação na vista 2D iso
-    private val COM_CAIXA = setOf("Equipamentos", "Consumidores", "Filtros")
+    // Categorias renderizadas como volumes (caixas) na vista 3D; o resto vira nó compacto.
+    private val COM_CAIXA = setOf("Refrigeração", "Ar comprimido")
 
     data class Vista(val escala: Float, val offX: Float, val offY: Float)
 
@@ -100,31 +103,45 @@ object RenderizadorProjeto {
             Paint().apply { color = Color.rgb(40, 50, 70); isAntiAlias = true; textAlign = Paint.Align.CENTER; textSize = 9.5f * escala })
     }
 
-    // =================== VISTA 3D (isométrica) ===================
+    // =================== VISTA 3D (órbita livre) ===================
+
+    /** Câmera de órbita: yaw (giro horizontal) e pitch (elevação) em graus. */
+    data class Camera3D(val yaw: Float, val pitch: Float)
+
+    /** Presets de câmera (yaw, pitch). */
+    val PRESETS: List<Pair<String, Camera3D>> = listOf(
+        "Iso" to Camera3D(45f, 30f),
+        "Topo" to Camera3D(0f, 89f),
+        "Frente" to Camera3D(0f, 4f),
+        "Direita" to Camera3D(90f, 4f),
+        "Trás" to Camera3D(180f, 4f),
+        "Esquerda" to Camera3D(270f, 4f),
+        "Iso traseira" to Camera3D(225f, 30f),
+    )
 
     fun render3d(
         estado: EstadoProjeto, w: Int, h: Int, escala: Float, panX: Float, panY: Float,
-        mostrarGrade: Boolean, azimute: Int,
+        mostrarGrade: Boolean, yaw: Float, pitch: Float,
     ): Bitmap {
         val bmp = Bitmap.createBitmap(w.coerceAtLeast(1), h.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), fundo)
 
-        fun rot(x: Float, y: Float): Pair<Float, Float> = when (((azimute % 360) + 360) % 360) {
-            90 -> y to -x; 180 -> -x to -y; 270 -> -y to x; else -> x to y
-        }
-        // projeção isométrica: (X,Y,Z) -> tela (sem escala/offset)
-        fun projXY(x: Float, y: Float): Pair<Float, Float> { val (rx, ry) = rot(x, y); return (rx - ry) * 0.866f to (rx + ry) * 0.5f }
+        // Projeção ortográfica de órbita. Mundo: x (leste), y (norte), z (cima).
+        val ar = Math.toRadians(yaw.toDouble()); val er = Math.toRadians(pitch.toDouble())
+        val sa = sin(ar).toFloat(); val ca = cos(ar).toFloat(); val se = sin(er).toFloat(); val ce = cos(er).toFloat()
+        fun sx(x: Float, y: Float) = -x * sa + y * ca
+        fun sy(x: Float, y: Float, z: Float) = -(x * ca * se + y * sa * se) + z * ce // para cima = positivo
+        fun depth(x: Float, y: Float, z: Float) = x * ca * ce + y * sa * ce + z * se // maior = mais perto
 
-        // Auto-centralização do conteúdo
-        val pts = estado.componentes.map { projXY(it.x, it.y) }
-        val minX = (pts.minOfOrNull { it.first } ?: 0f); val maxX = (pts.maxOfOrNull { it.first } ?: 0f)
-        val minY = (pts.minOfOrNull { it.second } ?: 0f); val maxY = (pts.maxOfOrNull { it.second } ?: 0f)
+        // Auto-centralização do conteúdo (inclui elevação no eixo vertical)
+        val pts = estado.componentes.map { sx(it.x, it.y) to sy(it.x, it.y, it.z) }
+        val minX = pts.minOfOrNull { it.first } ?: 0f; val maxX = pts.maxOfOrNull { it.first } ?: 0f
+        val minY = pts.minOfOrNull { it.second } ?: 0f; val maxY = pts.maxOfOrNull { it.second } ?: 0f
         val cOffX = w / 2f - (minX + maxX) / 2f * escala + panX
-        val cOffY = h / 2f - (minY + maxY) / 2f * escala + panY
-        fun tela(x: Float, y: Float, z: Float): Pair<Float, Float> {
-            val (px, py) = projXY(x, y); return px * escala + cOffX to (py - z) * escala + cOffY
-        }
+        val cOffY = h / 2f + (minY + maxY) / 2f * escala + panY
+        fun tela(x: Float, y: Float, z: Float): Pair<Float, Float> =
+            sx(x, y) * escala + cOffX to -sy(x, y, z) * escala + cOffY
 
         if (mostrarGrade) desenharGrade3D(c, estado, escala, ::tela)
 
@@ -151,8 +168,9 @@ object RenderizadorProjeto {
             }
         }
 
-        // Componentes: equipamentos como caixas; tubos/conexões/válvulas como nós compactos
-        estado.componentes.sortedBy { val (rx, ry) = rot(it.x, it.y); rx + ry + it.z * 0.1f }.forEach { comp ->
+        // Componentes: equipamentos como caixas; tubos/conexões/válvulas como nós compactos.
+        // Ordenação do pintor: mais distante primeiro (depth crescente).
+        estado.componentes.sortedBy { depth(it.x, it.y, it.z) }.forEach { comp ->
             if (comp.categoria in COM_CAIXA) {
                 val h = altura3d(comp.categoria, comp.tipo)
                 desenharCaixa3D(c, comp, 24f, 16f, comp.z, h, escala, ::tela)
@@ -220,22 +238,22 @@ object RenderizadorProjeto {
 
     private fun altura3d(categoria: String, tipo: String): Float = when {
         tipo == "Reservatório" || tipo == "Torre" || tipo == "Chiller" -> 80f
-        tipo == "Compressor" || tipo == "Secador" || tipo == "Booster" -> 66f
-        categoria == "Equipamentos" -> 58f
-        categoria == "Consumidores" -> 48f
-        categoria == "Filtros" -> 42f
+        tipo.startsWith("Compressor") || tipo == "Secador" || tipo == "Booster" -> 66f
+        tipo == "Condensadora" || tipo == "Evaporadora" -> 60f
+        categoria == "Refrigeração" -> 56f
+        categoria == "Ar comprimido" -> 52f
         categoria == "Válvulas" -> 34f
         categoria == "Instrumentação" -> 30f
         else -> 18f
     }
 
     private fun corCategoria(categoria: String): Int = when (categoria) {
-        "Equipamentos" -> Color.rgb(21, 101, 192)
+        "Refrigeração" -> Color.rgb(21, 101, 192)
+        "Ar comprimido" -> Color.rgb(0, 121, 107)
         "Válvulas" -> Color.rgb(245, 124, 0)
-        "Filtros" -> Color.rgb(123, 31, 162)
         "Instrumentação" -> Color.rgb(0, 137, 123)
-        "Consumidores" -> Color.rgb(84, 110, 122)
         "Conexões" -> Color.rgb(57, 73, 171)
+        "Tubulações" -> Color.rgb(176, 98, 41)
         else -> Color.rgb(13, 44, 79)
     }
 
@@ -249,12 +267,13 @@ object RenderizadorProjeto {
     )
 
     /** Escala para enquadrar o conteúdo na vista 3D (export). */
-    fun enquadrar3d(estado: EstadoProjeto, w: Int, h: Int, azimute: Int): Float {
+    fun enquadrar3d(estado: EstadoProjeto, w: Int, h: Int, yaw: Float, pitch: Float): Float {
         if (estado.componentes.isEmpty()) return 1f
-        fun rot(x: Float, y: Float): Pair<Float, Float> = when (((azimute % 360) + 360) % 360) {
-            90 -> y to -x; 180 -> -x to -y; 270 -> -y to x; else -> x to y
+        val ar = Math.toRadians(yaw.toDouble()); val er = Math.toRadians(pitch.toDouble())
+        val sa = sin(ar).toFloat(); val ca = cos(ar).toFloat(); val se = sin(er).toFloat(); val ce = cos(er).toFloat()
+        val pts = estado.componentes.map {
+            (-it.x * sa + it.y * ca) to (-(it.x * ca * se + it.y * sa * se) + it.z * ce)
         }
-        val pts = estado.componentes.map { val (rx, ry) = rot(it.x, it.y); (rx - ry) * 0.866f to (rx + ry) * 0.5f }
         val larg = (pts.maxOf { it.first } - pts.minOf { it.first }).coerceAtLeast(1f)
         val alt = (pts.maxOf { it.second } - pts.minOf { it.second } + 90f).coerceAtLeast(1f)
         return minOf(w / larg, h / alt) * 0.7f

@@ -43,7 +43,7 @@ object CalculosProjeto {
         fun num(s: String) = s.replace(",", ".").filter { it.isDigit() || it == '.' || it == '-' }.toDoubleOrNull()
 
         // Comprimento dos tubos (componentes "Tubo") + trechos (conexões)
-        val compTubos = comps.filter { it.tipo.startsWith("Tubo", true) }.sumOf { num(it.comprimento) ?: 0.0 }
+        val compTubos = comps.filter { it.tipo.startsWith("Tubo", true) || it.categoria == "Tubulações" }.sumOf { num(it.comprimento) ?: 0.0 }
         val compTrechos = estado.conexoes.sumOf { num(it.comprimento) ?: 0.0 }
         val comprimentoTotal = compTubos + compTrechos
 
@@ -51,11 +51,13 @@ object CalculosProjeto {
         val tees = comps.count { it.tipo.contains("Tee", true) || it.tipo.contains("Cruzeta", true) }
         val valvulas = comps.count { it.categoria == "Válvulas" }
         val registros = comps.count { it.tipo.contains("Registro", true) }
-        val filtros = comps.count { it.categoria == "Filtros" }
+        val filtros = comps.count { it.tipo.startsWith("Filtro", true) || it.tipo.startsWith("Separador", true) }
         val conexoesLinks = estado.conexoes.size
 
-        val equivAcessorios = comps.filter { it.categoria == "Conexões" || it.categoria == "Válvulas" || it.categoria == "Filtros" }
-            .sumOf { equivalente(it.tipo) }
+        val equivAcessorios = comps.filter {
+            it.categoria == "Conexões" || it.categoria == "Válvulas" ||
+                it.tipo.startsWith("Filtro", true) || it.tipo.startsWith("Separador", true)
+        }.sumOf { equivalente(it.tipo) }
         val comprimentoEquivalente = comprimentoTotal + equivAcessorios
 
         // Diâmetro de referência (mm): menor diâmetro informado entre tubos/trechos
