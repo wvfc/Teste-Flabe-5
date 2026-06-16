@@ -37,6 +37,7 @@ data class CompIso(
     val tipo: String,
     val x: Float,
     val y: Float,
+    val z: Float = 0f, // elevação (nível) em unidades de mundo
     val rotacao: Float = 0f,
     val nome: String = "",
     val codigo: String = "",
@@ -125,7 +126,7 @@ object ProjetoJson {
         estado.componentes.forEach { c ->
             comps.put(JSONObject().apply {
                 put("id", c.id); put("categoria", c.categoria); put("tipo", c.tipo)
-                put("x", c.x.toDouble()); put("y", c.y.toDouble()); put("rotacao", c.rotacao.toDouble())
+                put("x", c.x.toDouble()); put("y", c.y.toDouble()); put("z", c.z.toDouble()); put("rotacao", c.rotacao.toDouble())
                 put("nome", c.nome); put("codigo", c.codigo); put("fabricante", c.fabricante)
                 put("modelo", c.modelo); put("diametro", c.diametro); put("material", c.material)
                 put("comprimento", c.comprimento); put("peso", c.peso); put("pressaoMax", c.pressaoMax)
@@ -155,7 +156,8 @@ object ProjetoJson {
                 val o = comps.getJSONObject(i)
                 CompIso(
                     id = o.optLong("id"), categoria = o.optString("categoria"), tipo = o.optString("tipo"),
-                    x = o.optDouble("x").toFloat(), y = o.optDouble("y").toFloat(), rotacao = o.optDouble("rotacao").toFloat(),
+                    x = o.optDouble("x").toFloat(), y = o.optDouble("y").toFloat(), z = o.optDouble("z").toFloat(),
+                    rotacao = o.optDouble("rotacao").toFloat(),
                     nome = o.optString("nome"), codigo = o.optString("codigo"), fabricante = o.optString("fabricante"),
                     modelo = o.optString("modelo"), diametro = o.optString("diametro"), material = o.optString("material"),
                     comprimento = o.optString("comprimento"), peso = o.optString("peso"), pressaoMax = o.optString("pressaoMax"),

@@ -23,6 +23,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.ContentCopy
@@ -180,6 +182,11 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
         atualizarComp(c.copy(rotacao = (c.rotacao + 45f) % 360f))
     }
 
+    fun elevarSelecionado(d: Float) {
+        val c = estado.componentes.find { it.id == selecionado } ?: return
+        atualizarComp(c.copy(z = (c.z + d).coerceIn(-200f, 400f)))
+    }
+
     fun conectar(aId: Long, bId: Long) {
         if (aId == bId) return
         if (estado.conexoes.any { (it.deId == aId && it.paraId == bId) || (it.deId == bId && it.paraId == aId) }) return
@@ -329,10 +336,12 @@ fun EditorIsoScreen(nav: NavController, projetoId: Long, vm: ProjetosViewModel =
                     Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
+                    BotaoBarra(Icons.Default.ArrowUpward, "Subir") { elevarSelecionado(20f) }
+                    BotaoBarra(Icons.Default.ArrowDownward, "Descer") { elevarSelecionado(-20f) }
                     BotaoBarra(Icons.Default.Rotate90DegreesCw, "Girar") { rotacionarSelecionado() }
                     BotaoBarra(Icons.Default.ContentCopy, "Duplicar") { duplicarSelecionado() }
-                    BotaoBarra(Icons.Default.Link, if (modoConexao) "Toque o destino" else "Conectar") { modoConexao = !modoConexao }
-                    BotaoBarra(Icons.Default.Tune, "Propriedades") { editarComp = estado.componentes.find { it.id == selecionado } }
+                    BotaoBarra(Icons.Default.Link, if (modoConexao) "Destino" else "Conectar") { modoConexao = !modoConexao }
+                    BotaoBarra(Icons.Default.Tune, "Editar") { editarComp = estado.componentes.find { it.id == selecionado } }
                     BotaoBarra(Icons.Default.Delete, "Excluir") { excluirSelecionado() }
                 }
             }
@@ -443,6 +452,7 @@ private fun PropriedadesDialog(comp: CompIso, aoSalvar: (CompIso) -> Unit, aoFec
     var pressaoMax by remember { mutableStateOf(comp.pressaoMax) }
     var tempMax by remember { mutableStateOf(comp.tempMax) }
     var etiqueta by remember { mutableStateOf(comp.etiqueta) }
+    var elev by remember { mutableStateOf(comp.z.toInt().toString()) }
     var obs by remember { mutableStateOf(comp.observacoes) }
 
     AlertDialog(
@@ -451,7 +461,8 @@ private fun PropriedadesDialog(comp: CompIso, aoSalvar: (CompIso) -> Unit, aoFec
             TextButton(onClick = {
                 aoSalvar(comp.copy(nome = nome, codigo = codigo, fabricante = fabricante, modelo = modelo,
                     diametro = diametro, material = material, comprimento = comprimento, peso = peso,
-                    pressaoMax = pressaoMax, tempMax = tempMax, etiqueta = etiqueta, observacoes = obs))
+                    pressaoMax = pressaoMax, tempMax = tempMax, etiqueta = etiqueta, observacoes = obs,
+                    z = elev.replace(",", ".").toFloatOrNull() ?: comp.z))
             }) { Text("Salvar") }
         },
         dismissButton = { TextButton(onClick = aoFechar) { Text("Cancelar") } },
@@ -460,6 +471,7 @@ private fun PropriedadesDialog(comp: CompIso, aoSalvar: (CompIso) -> Unit, aoFec
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 CampoTexto(nome, { nome = it }, "Nome")
                 CampoTexto(etiqueta, { etiqueta = it }, "Etiqueta")
+                CampoTexto(elev, { elev = it }, "Elevação / nível")
                 CampoTexto(codigo, { codigo = it }, "Código")
                 CampoTexto(fabricante, { fabricante = it }, "Fabricante")
                 CampoTexto(modelo, { modelo = it }, "Modelo")

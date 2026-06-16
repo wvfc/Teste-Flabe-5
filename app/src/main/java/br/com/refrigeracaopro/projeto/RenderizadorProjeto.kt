@@ -21,6 +21,8 @@ object RenderizadorProjeto {
 
     const val COMP_W = 74f
     const val COMP_H = 46f
+    private const val LIFT = 0.6f // fator de elevação na vista 2D iso
+    private val COM_CAIXA = setOf("Equipamentos", "Consumidores", "Filtros")
 
     data class Vista(val escala: Float, val offX: Float, val offY: Float)
 
@@ -38,16 +40,25 @@ object RenderizadorProjeto {
         c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), fundo)
         if (mostrarGrade) desenharGrade(c, w, h, escala)
 
-        val linha = Paint().apply { strokeWidth = (3f * escala).coerceIn(2f, 8f); isAntiAlias = true; style = Paint.Style.STROKE }
+        fun cx2(comp: CompIso) = comp.x * escala + offX
+        fun cy2(comp: CompIso) = comp.y * escala + offY - comp.z * escala * LIFT
+
+        // Postes de elevação (do componente elevado até o piso)
+        val poste = Paint().apply { color = Color.rgb(180, 190, 205); strokeWidth = 1.2f; isAntiAlias = true }
+        estado.componentes.filter { it.z != 0f }.forEach { comp ->
+            c.drawLine(cx2(comp), cy2(comp), cx2(comp), comp.y * escala + offY, poste)
+        }
+
+        val linha = Paint().apply { strokeWidth = (3f * escala).coerceIn(2f, 8f); isAntiAlias = true; style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
         val mapa = estado.componentes.associateBy { it.id }
         estado.conexoes.forEach { x ->
             val a = mapa[x.deId]; val b = mapa[x.paraId]
             if (a != null && b != null) {
                 linha.color = FluidosLinha.cor(x.fluido).toInt()
-                c.drawLine(a.x * escala + offX, a.y * escala + offY, b.x * escala + offX, b.y * escala + offY, linha)
+                c.drawLine(cx2(a), cy2(a), cx2(b), cy2(b), linha)
             }
         }
-        estado.componentes.forEach { comp -> desenharComponente2D(c, comp, escala, offX, offY, comp.id == selecionadoId) }
+        estado.componentes.forEach { comp -> desenharComponente2D(c, comp, cx2(comp), cy2(comp), escala, comp.id == selecionadoId) }
         return bmp
     }
 
@@ -62,26 +73,30 @@ object RenderizadorProjeto {
         }
     }
 
-    private fun desenharComponente2D(c: Canvas, comp: CompIso, escala: Float, offX: Float, offY: Float, selecionado: Boolean) {
-        val cx = comp.x * escala + offX
-        val cy = comp.y * escala + offY
+    private fun desenharComponente2D(c: Canvas, comp: CompIso, cx: Float, cy: Float, escala: Float, selecionado: Boolean) {
         val wpx = COMP_W * escala
         val hpx = COMP_H * escala
         val cor = if (comp.cor != 0L) comp.cor.toInt() else corCategoria(comp.categoria)
+        val temCaixa = comp.categoria in COM_CAIXA
 
         c.save(); c.rotate(comp.rotacao, cx, cy)
         val rect = RectF(cx - wpx / 2, cy - hpx / 2, cx + wpx / 2, cy + hpx / 2)
         val raio = 6f * escala
-        c.drawRoundRect(rect, raio, raio, Paint().apply { color = cor; alpha = 28; isAntiAlias = true })
-        c.drawRoundRect(rect, raio, raio, Paint().apply {
-            color = if (selecionado) Color.rgb(46, 166, 107) else Color.rgb(70, 84, 104)
-            style = Paint.Style.STROKE; strokeWidth = (if (selecionado) 3.5f else 1.4f) * escala; isAntiAlias = true
-        })
-        SimbolosComponente.desenhar(c, comp, cx, cy, wpx * 0.34f, hpx * 0.34f, escala, cor)
+        if (temCaixa) {
+            c.drawRoundRect(rect, raio, raio, Paint().apply { color = cor; alpha = 26; isAntiAlias = true })
+            c.drawRoundRect(rect, raio, raio, Paint().apply {
+                color = if (selecionado) Color.rgb(46, 166, 107) else Color.rgb(70, 84, 104)
+                style = Paint.Style.STROKE; strokeWidth = (if (selecionado) 3.5f else 1.4f) * escala; isAntiAlias = true
+            })
+        } else if (selecionado) {
+            c.drawRoundRect(rect, raio, raio, Paint().apply { color = Color.rgb(46, 166, 107); style = Paint.Style.STROKE; strokeWidth = 2.5f * escala; isAntiAlias = true })
+        }
+        SimbolosComponente.desenhar(c, comp, cx, cy, wpx * 0.36f, hpx * 0.36f, escala, cor)
         c.restore()
 
         val rotulo = comp.etiqueta.ifBlank { comp.nome.ifBlank { comp.tipo } }
-        c.drawText(rotulo.take(18), cx, cy + hpx / 2 + 12f * escala,
+        val sufixo = if (comp.z != 0f) "  (z ${comp.z.toInt()})" else ""
+        c.drawText(rotulo.take(16) + sufixo, cx, cy + hpx / 2 + 12f * escala,
             Paint().apply { color = Color.rgb(40, 50, 70); isAntiAlias = true; textAlign = Paint.Align.CENTER; textSize = 9.5f * escala })
     }
 
@@ -113,23 +128,37 @@ object RenderizadorProjeto {
 
         if (mostrarGrade) desenharGrade3D(c, estado, escala, ::tela)
 
-        // Tubos (conexões) na altura média
+        fun zConex(comp: CompIso) = comp.z + if (comp.categoria in COM_CAIXA) altura3d(comp.categoria, comp.tipo) * 0.5f else 6f
+
+        // Postes de elevação (do nível do componente até o piso)
+        val poste = Paint().apply { color = Color.rgb(170, 182, 200); strokeWidth = 1.4f; isAntiAlias = true }
+        estado.componentes.filter { it.z != 0f }.forEach { comp ->
+            val (x1, y1) = tela(comp.x, comp.y, comp.z); val (x2, y2) = tela(comp.x, comp.y, 0f)
+            c.drawLine(x1, y1, x2, y2, poste)
+        }
+
+        // Tubos (conexões) na elevação de cada extremidade
         val mapa = estado.componentes.associateBy { it.id }
         val tubo = Paint().apply { isAntiAlias = true; style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
         estado.conexoes.forEach { x ->
             val a = mapa[x.deId]; val b = mapa[x.paraId]
             if (a != null && b != null) {
-                val (ax, ay) = tela(a.x, a.y, 14f); val (bx, by) = tela(b.x, b.y, 14f)
-                tubo.color = escurecer(FluidosLinha.cor(x.fluido).toInt(), 0.7f); tubo.strokeWidth = 7f * escala
+                val (ax, ay) = tela(a.x, a.y, zConex(a)); val (bx, by) = tela(b.x, b.y, zConex(b))
+                tubo.color = escurecer(FluidosLinha.cor(x.fluido).toInt(), 0.7f); tubo.strokeWidth = 8f * escala
                 c.drawLine(ax, ay, bx, by, tubo)
-                tubo.color = FluidosLinha.cor(x.fluido).toInt(); tubo.strokeWidth = 4.5f * escala
+                tubo.color = FluidosLinha.cor(x.fluido).toInt(); tubo.strokeWidth = 5f * escala
                 c.drawLine(ax, ay, bx, by, tubo)
             }
         }
 
-        // Componentes como blocos extrudados (ordenados de trás p/ frente)
-        estado.componentes.sortedBy { val (rx, ry) = rot(it.x, it.y); rx + ry }.forEach { comp ->
-            desenharBloco3D(c, comp, escala, ::tela)
+        // Componentes: equipamentos como caixas; tubos/conexões/válvulas como nós compactos
+        estado.componentes.sortedBy { val (rx, ry) = rot(it.x, it.y); rx + ry + it.z * 0.1f }.forEach { comp ->
+            if (comp.categoria in COM_CAIXA) {
+                val h = altura3d(comp.categoria, comp.tipo)
+                desenharCaixa3D(c, comp, 24f, 16f, comp.z, h, escala, ::tela)
+            } else {
+                desenharCaixa3D(c, comp, 15f, 11f, comp.z, 10f, escala, ::tela)
+            }
         }
         return bmp
     }
@@ -145,19 +174,18 @@ object RenderizadorProjeto {
         while (y <= maxY) { val (x1, y1) = tela(minX, y, 0f); val (x2, y2) = tela(maxX, y, 0f); c.drawLine(x1, y1, x2, y2, gradePaint); y += passo }
     }
 
-    private fun desenharBloco3D(c: Canvas, comp: CompIso, escala: Float, tela: (Float, Float, Float) -> Pair<Float, Float>) {
-        val fx = 26f; val fy = 18f
-        val hz = altura3d(comp.categoria, comp.tipo)
+    private fun desenharCaixa3D(c: Canvas, comp: CompIso, fx: Float, fy: Float, baseZ: Float, hz: Float, escala: Float, tela: (Float, Float, Float) -> Pair<Float, Float>) {
         val cor = if (comp.cor != 0L) comp.cor.toInt() else corCategoria(comp.categoria)
+        val topoZ = baseZ + hz
 
-        // Cantos do topo (Z=hz) e da base (Z=0) na ordem A,B,C,D
+        // Cantos do topo e da base na ordem A,B,C,D
         val topo = listOf(
-            tela(comp.x - fx, comp.y - fy, hz), tela(comp.x + fx, comp.y - fy, hz),
-            tela(comp.x + fx, comp.y + fy, hz), tela(comp.x - fx, comp.y + fy, hz),
+            tela(comp.x - fx, comp.y - fy, topoZ), tela(comp.x + fx, comp.y - fy, topoZ),
+            tela(comp.x + fx, comp.y + fy, topoZ), tela(comp.x - fx, comp.y + fy, topoZ),
         )
         val base = listOf(
-            tela(comp.x - fx, comp.y - fy, 0f), tela(comp.x + fx, comp.y - fy, 0f),
-            tela(comp.x + fx, comp.y + fy, 0f), tela(comp.x - fx, comp.y + fy, 0f),
+            tela(comp.x - fx, comp.y - fy, baseZ), tela(comp.x + fx, comp.y - fy, baseZ),
+            tela(comp.x + fx, comp.y + fy, baseZ), tela(comp.x - fx, comp.y + fy, baseZ),
         )
         // Canto frontal = topo com maior Y de tela; desenha as 2 faces adjacentes
         val frente = (0..3).maxByOrNull { topo[it].second } ?: 2
