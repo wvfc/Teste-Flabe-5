@@ -20,6 +20,7 @@ import br.com.refrigeracaopro.ui.screens.AgendamentosScreen
 import br.com.refrigeracaopro.ui.screens.AssistenteIAScreen
 import br.com.refrigeracaopro.ui.screens.CadastrosScreen
 import br.com.refrigeracaopro.ui.screens.CalculosScreen
+import br.com.refrigeracaopro.ui.screens.CalculadoraGraxaScreen
 import br.com.refrigeracaopro.ui.screens.ClienteFormScreen
 import br.com.refrigeracaopro.ui.screens.ClientesScreen
 import br.com.refrigeracaopro.ui.screens.ComparacaoScreen
@@ -148,6 +149,7 @@ class MainActivity : ComponentActivity() {
                         composable("manuais") { ManuaisScreen(nav) }
                         composable("gestao") { GestaoScreen(nav) }
                         composable("conversor") { ConversorScreen(nav) }
+                        composable("graxa") { CalculadoraGraxaScreen(nav) }
                         composable("senhas_ihm") { SenhasIHMScreen(nav) }
 
                         composable("projetos") { ProjetosScreen(nav) }

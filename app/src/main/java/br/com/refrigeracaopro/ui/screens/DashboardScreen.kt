@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Password
 import androidx.compose.material.icons.filled.Science
@@ -103,6 +104,7 @@ fun FerramentasScreen(nav: NavController) {
         Modulo("Motores/Compressores", Icons.Default.Memory, "compressores"),
         Modulo("Comparar Componentes", Icons.AutoMirrored.Filled.CompareArrows, "comparacao"),
         Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
+        Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
         Modulo("Senhas IHM", Icons.Default.Password, "senhas_ihm"),
         Modulo("Buscar Manual", Icons.AutoMirrored.Filled.MenuBook, "manuais"),
     )

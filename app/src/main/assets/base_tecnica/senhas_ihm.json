@@ -202,5 +202,15 @@
       {"titulo": "E75 Azul Ar Brasil", "usuario": null, "senha": "236 / 478 / 159", "observacao": ""},
       {"titulo": "Senha de reset geral (reset de senha)", "usuario": null, "senha": "1503", "observacao": "Código de reset geral de senha."}
     ]
+  },
+  {
+    "slug": "mam",
+    "nome": "MAM (Controladores Chineses)",
+    "descricao": "Controladores MAM genéricos (MAM-6080, MAM-220, MAM-860 e similares), usados em diversas marcas de compressores parafuso.",
+    "itens": [
+      {"titulo": "MAM (geral)", "usuario": null, "senha": "1688, 9999, 1689, 2525, 2302, 2303", "observacao": "Senhas comuns dos controladores MAM. Testar conforme o modelo."},
+      {"titulo": "IHM MAM 6080", "usuario": null, "senha": "0588, 0003, 0130, 2999", "observacao": ""},
+      {"titulo": "Controladoras MAM (lista completa)", "usuario": null, "senha": null, "observacao": "Senhas reportadas para as controladoras MAM. Testar uma a uma conforme o modelo do painel.", "codigos": [{"nome": "Senhas", "valor": "6080, 0790, 1688, 5588, 5678, 0799, 2525, 0003, 9999, 0388, 5966, 1000, 2822, 2302, 0588"}]}
+    ]
   }
 ]
