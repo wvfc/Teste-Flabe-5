@@ -24,7 +24,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,11 +55,9 @@ import br.com.refrigeracaopro.data.Prefs.nomeTecnico
 import br.com.refrigeracaopro.data.Prefs.registroTecnico
 import br.com.refrigeracaopro.data.Prefs.telefoneEmpresa
 import br.com.refrigeracaopro.ia.OpenAiClient
-import br.com.refrigeracaopro.ui.components.SeletorOpcoes
 import br.com.refrigeracaopro.ui.components.TelaBase
 import br.com.refrigeracaopro.ui.components.TituloSecao
 import br.com.refrigeracaopro.util.Arquivos
-import br.com.refrigeracaopro.util.Backup
 import java.io.File
 import kotlinx.coroutines.launch
 
@@ -82,29 +79,13 @@ fun ConfiguracoesScreen(nav: NavController) {
     var tecnico by remember { mutableStateOf(context.nomeTecnico) }
     var registro by remember { mutableStateOf(context.registroTecnico) }
     var chave by remember { mutableStateOf(context.chaveOpenAi) }
-    var modelo by remember { mutableStateOf(context.modeloIa) }
-    var iaLigada by remember { mutableStateOf(context.iaAtiva) }
+    val modelo = OpenAiClient.MODELOS.first() // modelo fixo (gpt-4o-mini)
+    val iaLigada = true // assistente sempre ativo; o usuário só informa a chave
     var mostrarChave by remember { mutableStateOf(false) }
     var testando by remember { mutableStateOf(false) }
 
     val escolherLogo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { Arquivos.copiarImagem(context, it)?.let { caminho -> logo = caminho } }
-    }
-    val exportarBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
-        uri?.let {
-            val ok = Backup.exportar(context, it)
-            Toast.makeText(context, if (ok) "Backup exportado." else "Falha ao exportar.", Toast.LENGTH_LONG).show()
-        }
-    }
-    val importarBackup = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            val ok = Backup.importar(context, it)
-            Toast.makeText(
-                context,
-                if (ok) "Backup restaurado. Reinicie o app." else "Falha ao restaurar.",
-                Toast.LENGTH_LONG
-            ).show()
-        }
     }
 
     fun salvarTudo() {
@@ -143,10 +124,6 @@ fun ConfiguracoesScreen(nav: NavController) {
             Campo(registro, { registro = it }, "Registro profissional (opcional)")
 
             TituloSecao("Assistente IA (OpenAI)")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Ativar assistente IA", Modifier.weight(1f))
-                Switch(checked = iaLigada, onCheckedChange = { iaLigada = it })
-            }
             OutlinedTextField(
                 value = chave,
                 onValueChange = { chave = it },
@@ -166,7 +143,6 @@ fun ConfiguracoesScreen(nav: NavController) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            SeletorOpcoes("Modelo de IA", OpenAiClient.MODELOS, modelo, { modelo = it })
             OutlinedButton(
                 onClick = {
                     salvarTudo()
@@ -183,23 +159,6 @@ fun ConfiguracoesScreen(nav: NavController) {
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
             ) { Text(if (testando) "Testando..." else "Testar conexão") }
-
-            TituloSecao("Backup e restauração")
-            Text(
-                "Exporte uma cópia do banco de dados local para um arquivo, ou restaure a partir de um backup.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(Modifier.padding(top = 8.dp)) {
-                OutlinedButton(
-                    onClick = { exportarBackup.launch("refrigeracao_pro_backup.db") },
-                    modifier = Modifier.weight(1f).padding(end = 4.dp)
-                ) { Text("Exportar") }
-                OutlinedButton(
-                    onClick = { importarBackup.launch("*/*") },
-                    modifier = Modifier.weight(1f).padding(start = 4.dp)
-                ) { Text("Restaurar") }
-            }
 
             TituloSecao("Backup na nuvem (Google Drive)")
             BackupDriveSecao()
@@ -242,9 +201,17 @@ private fun BackupDriveSecao() {
         mutableStateOf(com.google.android.gms.auth.api.signin.GoogleSignIn.getLastSignedInAccount(context))
     }
     var ocupado by remember { mutableStateOf(false) }
-    var backupAuto by remember { mutableStateOf(context.backupAutomatico) }
-    var frequencia by remember { mutableStateOf(context.backupFrequencia) }
-    var somenteWifi by remember { mutableStateOf(context.backupSomenteWifi) }
+
+    // Backup automático fixo: diário, em segundo plano, por Wi-Fi + dados móveis.
+    // Fica ativo automaticamente enquanto houver uma conta Google conectada.
+    androidx.compose.runtime.LaunchedEffect(conta?.email) {
+        if (conta != null) {
+            context.backupAutomatico = true
+            context.backupFrequencia = "Diária"
+            context.backupSomenteWifi = false
+            br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
+        }
+    }
 
     val login = rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -304,43 +271,17 @@ private fun BackupDriveSecao() {
                 modifier = Modifier.weight(1f).padding(start = 4.dp)
             ) { Text("Restaurar") }
         }
-        // Backup automático (WorkManager) — diário ou semanal
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-            Text("Backup automático", Modifier.weight(1f))
-            Switch(checked = backupAuto, onCheckedChange = {
-                backupAuto = it
-                context.backupAutomatico = it
-                br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
-            })
-        }
-        if (backupAuto) {
-            SeletorOpcoes("Frequência", listOf("Diária", "Semanal"), frequencia, { sel ->
-                frequencia = sel
-                context.backupFrequencia = sel
-                br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
-            })
-            SeletorOpcoes(
-                "Rede do backup automático",
-                listOf("Wi-Fi apenas", "Wi-Fi + dados móveis"),
-                if (somenteWifi) "Wi-Fi apenas" else "Wi-Fi + dados móveis",
-                { sel ->
-                    somenteWifi = sel == "Wi-Fi apenas"
-                    context.backupSomenteWifi = somenteWifi
-                    br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
-                }
-            )
-            Text(
-                "Backup completo (banco + fotos + manuais + PDFs). Envia em segundo plano e só " +
-                    "quando houver mudança. O Android pode ajustar o horário para economizar bateria.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            "Backup automático diário ativado: backup completo (banco + fotos + manuais + PDFs) em " +
+                "segundo plano, só quando houver mudança. O Android pode ajustar o horário para economizar bateria.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp)
+        )
 
         androidx.compose.material3.TextButton(onClick = {
             cliente().signOut().addOnCompleteListener {
                 conta = null
                 // Sem conta conectada, desliga o backup automático
-                backupAuto = false
                 context.backupAutomatico = false
                 br.com.refrigeracaopro.util.AgendadorBackup.aplicar(context)
             }
