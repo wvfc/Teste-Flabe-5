@@ -59,7 +59,7 @@ fun DadosCompressoresScreen(nav: NavController) {
 
     val resultados = remember(consulta, todas) { DadosCompressores.buscar(todas, consulta) }
 
-    TelaBase(nav, "Dados de Compressores") { padding ->
+    TelaBase(nav, "Atlas Copco") { padding ->
         val maquina = selecionada
         if (maquina == null) {
             Column(Modifier.fillMaxSize().padding(padding)) {

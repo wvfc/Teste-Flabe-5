@@ -101,14 +101,23 @@ fun FerramentasScreen(nav: NavController) {
     val modulos = listOf(
         Modulo("Consulta de Gases", Icons.Default.Science, "gases"),
         Modulo("Cálculos", Icons.Default.Calculate, "calculos"),
-        Modulo("Dados de Compressores", Icons.Default.PrecisionManufacturing, "dados_compressores"),
-        Modulo("Ingersoll Rand", Icons.Default.Inventory2, "dados_ingersoll"),
+        Modulo("Dados de Compressores", Icons.Default.PrecisionManufacturing, "compressores_marcas"),
         Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
         Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
         Modulo("Senhas IHM", Icons.Default.Password, "senhas_ihm"),
         Modulo("Buscar Manual", Icons.AutoMirrored.Filled.MenuBook, "manuais"),
     )
     TelaBase(nav, "Ferramentas") { padding -> GradeModulos(modulos, nav, padding) }
+}
+
+/** Sub-dashboard "Dados de Compressores": marcas (Atlas, Ingersoll e futuras). */
+@Composable
+fun MarcasCompressoresScreen(nav: NavController) {
+    val modulos = listOf(
+        Modulo("Atlas Copco", Icons.Default.PrecisionManufacturing, "dados_compressores"),
+        Modulo("Ingersoll Rand", Icons.Default.Inventory2, "dados_ingersoll"),
+    )
+    TelaBase(nav, "Dados de Compressores") { padding -> GradeModulos(modulos, nav, padding) }
 }
 
 /** Grade reutilizável de cartões grandes (uso em campo). */
