@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.PrecisionManufacturing
 import androidx.compose.material.icons.filled.Handyman
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Opacity
@@ -110,14 +109,59 @@ fun FerramentasScreen(nav: NavController) {
     TelaBase(nav, "Ferramentas") { padding -> GradeModulos(modulos, nav, padding) }
 }
 
+/** Marca de compressor exibida com a logo oficial. */
+data class MarcaCompressor(val nome: String, val logo: Int, val rota: String)
+
 /** Sub-dashboard "Dados de Compressores": marcas (Atlas, Ingersoll e futuras). */
 @Composable
 fun MarcasCompressoresScreen(nav: NavController) {
-    val modulos = listOf(
-        Modulo("Atlas Copco", Icons.Default.PrecisionManufacturing, "dados_compressores"),
-        Modulo("Ingersoll Rand", Icons.Default.Inventory2, "dados_ingersoll"),
+    val marcas = listOf(
+        MarcaCompressor("Atlas Copco", br.com.refrigeracaopro.R.drawable.logo_atlas_copco, "dados_compressores"),
+        MarcaCompressor("Ingersoll Rand", br.com.refrigeracaopro.R.drawable.logo_ingersoll_rand, "dados_ingersoll"),
     )
-    TelaBase(nav, "Dados de Compressores") { padding -> GradeModulos(modulos, nav, padding) }
+    TelaBase(nav, "Dados de Compressores") { padding ->
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(marcas) { marca ->
+                Card(
+                    onClick = { nav.navigate(marca.rota) },
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                ) {
+                    Column(
+                        Modifier.fillMaxSize().padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        androidx.compose.material3.Surface(
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                            color = Color.White,
+                            modifier = Modifier.size(96.dp),
+                        ) {
+                            androidx.compose.foundation.Image(
+                                painter = androidx.compose.ui.res.painterResource(marca.logo),
+                                contentDescription = marca.nome,
+                                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize().padding(6.dp),
+                            )
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            marca.nome,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** Grade reutilizável de cartões grandes (uso em campo). */
