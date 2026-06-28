@@ -81,6 +81,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.8.3")
+    // Aba in-app (Custom Tabs) para abrir pastas/links externos sem sair do app
+    implementation("androidx.browser:browser:1.8.0")
 
     // Room: banco de dados local (funciona offline)
     implementation("androidx.room:room-runtime:2.6.1")

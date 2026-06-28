@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Engineering
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.PrecisionManufacturing
 import androidx.compose.material.icons.filled.Handyman
@@ -109,15 +110,27 @@ fun FerramentasScreen(nav: NavController) {
     TelaBase(nav, "Ferramentas") { padding -> GradeModulos(modulos, nav, padding) }
 }
 
-/** Marca de compressor exibida com a logo oficial. */
-data class MarcaCompressor(val nome: String, val logo: Int, val rota: String)
+/**
+ * Marca de compressor. Pode abrir uma tela interna de dados (rota) ou uma
+ * pasta do OneDrive (url) — neste caso abre numa aba dentro do app.
+ */
+data class MarcaCompressor(
+    val nome: String,
+    val logo: Int? = null,
+    val icone: ImageVector? = null,
+    val rota: String? = null,
+    val url: String? = null,
+)
 
 /** Sub-dashboard "Dados de Compressores": marcas (Atlas, Ingersoll e futuras). */
 @Composable
 fun MarcasCompressoresScreen(nav: NavController) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val marcas = listOf(
-        MarcaCompressor("Atlas Copco", br.com.refrigeracaopro.R.drawable.logo_atlas_copco, "dados_compressores"),
-        MarcaCompressor("Ingersoll Rand", br.com.refrigeracaopro.R.drawable.logo_ingersoll_rand, "dados_ingersoll"),
+        MarcaCompressor("Atlas Copco", logo = br.com.refrigeracaopro.R.drawable.logo_atlas_copco, rota = "dados_compressores"),
+        MarcaCompressor("Ingersoll Rand", logo = br.com.refrigeracaopro.R.drawable.logo_ingersoll_rand, rota = "dados_ingersoll"),
+        MarcaCompressor("Chicago Pneumatic", icone = Icons.Default.FolderOpen, url = "https://1drv.ms/f/c/f1f044930beab71d/IgDsWXxPynDMQrdAxBFxrXnYAQJrxzEG0N12MNi9VrbhNC4"),
+        MarcaCompressor("Kaeser", icone = Icons.Default.FolderOpen, url = "https://1drv.ms/f/c/f1f044930beab71d/IgCE7FrnRBmXTIWG3G80fro_AdXFyQfM7F-VXuMfrrfgeok"),
     )
     TelaBase(nav, "Dados de Compressores") { padding ->
         LazyVerticalGrid(
@@ -129,7 +142,12 @@ fun MarcasCompressoresScreen(nav: NavController) {
         ) {
             items(marcas) { marca ->
                 Card(
-                    onClick = { nav.navigate(marca.rota) },
+                    onClick = {
+                        when {
+                            marca.rota != null -> nav.navigate(marca.rota)
+                            marca.url != null -> abrirPasta(context, marca.url)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 ) {
@@ -138,17 +156,21 @@ fun MarcasCompressoresScreen(nav: NavController) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                     ) {
-                        androidx.compose.material3.Surface(
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-                            color = Color.White,
-                            modifier = Modifier.size(96.dp),
-                        ) {
-                            androidx.compose.foundation.Image(
-                                painter = androidx.compose.ui.res.painterResource(marca.logo),
-                                contentDescription = marca.nome,
-                                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                                modifier = Modifier.fillMaxSize().padding(6.dp),
-                            )
+                        if (marca.logo != null) {
+                            androidx.compose.material3.Surface(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                                color = Color.White,
+                                modifier = Modifier.size(96.dp),
+                            ) {
+                                androidx.compose.foundation.Image(
+                                    painter = androidx.compose.ui.res.painterResource(marca.logo),
+                                    contentDescription = marca.nome,
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize().padding(6.dp),
+                                )
+                            }
+                        } else {
+                            Icon(marca.icone ?: Icons.Default.FolderOpen, null, tint = Verde, modifier = Modifier.size(56.dp))
                         }
                         Spacer(Modifier.height(10.dp))
                         Text(
@@ -157,10 +179,25 @@ fun MarcasCompressoresScreen(nav: NavController) {
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
                         )
+                        if (marca.url != null) {
+                            Text("Pasta OneDrive", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+/** Abre uma pasta/URL numa aba dentro do app (Custom Tab); cai no navegador se preciso. */
+private fun abrirPasta(context: android.content.Context, url: String) {
+    val uri = android.net.Uri.parse(url)
+    runCatching {
+        androidx.browser.customtabs.CustomTabsIntent.Builder().build().launchUrl(context, uri)
+    }.onFailure {
+        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri)) }
+            .onFailure { android.widget.Toast.makeText(context, "Não foi possível abrir a pasta.", android.widget.Toast.LENGTH_SHORT).show() }
     }
 }
 
