@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.FolderShared
+import androidx.compose.material.icons.filled.PrecisionManufacturing
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material.icons.filled.Memory
@@ -102,6 +103,7 @@ fun FerramentasScreen(nav: NavController) {
         Modulo("Consulta de Gases", Icons.Default.Science, "gases"),
         Modulo("Cálculos", Icons.Default.Calculate, "calculos"),
         Modulo("Motores/Compressores", Icons.Default.Memory, "compressores"),
+        Modulo("Dados de Compressores", Icons.Default.PrecisionManufacturing, "dados_compressores"),
         Modulo("Comparar Componentes", Icons.AutoMirrored.Filled.CompareArrows, "comparacao"),
         Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
         Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
