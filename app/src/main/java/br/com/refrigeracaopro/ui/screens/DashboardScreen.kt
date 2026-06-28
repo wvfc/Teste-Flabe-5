@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -24,8 +23,8 @@ import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.FolderShared
 import androidx.compose.material.icons.filled.PrecisionManufacturing
 import androidx.compose.material.icons.filled.Handyman
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Kitchen
-import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.People
@@ -102,9 +101,8 @@ fun FerramentasScreen(nav: NavController) {
     val modulos = listOf(
         Modulo("Consulta de Gases", Icons.Default.Science, "gases"),
         Modulo("Cálculos", Icons.Default.Calculate, "calculos"),
-        Modulo("Motores/Compressores", Icons.Default.Memory, "compressores"),
         Modulo("Dados de Compressores", Icons.Default.PrecisionManufacturing, "dados_compressores"),
-        Modulo("Comparar Componentes", Icons.AutoMirrored.Filled.CompareArrows, "comparacao"),
+        Modulo("Ingersoll Rand", Icons.Default.Inventory2, "dados_ingersoll"),
         Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
         Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
         Modulo("Senhas IHM", Icons.Default.Password, "senhas_ihm"),

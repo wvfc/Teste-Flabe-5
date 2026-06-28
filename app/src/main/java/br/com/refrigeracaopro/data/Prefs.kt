@@ -72,7 +72,7 @@ object Prefs {
         set(v) = seguras(this).edit().putString("openai_key", v).apply()
 
     var Context.modeloIa: String
-        get() = config(this).getString("modelo_ia", "gpt-4o-mini") ?: "gpt-4o-mini"
+        get() = config(this).getString("modelo_ia", "gpt-4o") ?: "gpt-4o"
         set(v) = config(this).edit().putString("modelo_ia", v).apply()
 
     var Context.iaAtiva: Boolean

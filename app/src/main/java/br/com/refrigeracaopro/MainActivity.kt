@@ -28,6 +28,7 @@ import br.com.refrigeracaopro.ui.screens.CompressoresScreen
 import br.com.refrigeracaopro.ui.screens.ConfiguracoesScreen
 import br.com.refrigeracaopro.ui.screens.ConversorScreen
 import br.com.refrigeracaopro.ui.screens.DadosCompressoresScreen
+import br.com.refrigeracaopro.ui.screens.DadosIngersollScreen
 import br.com.refrigeracaopro.ui.screens.DashboardScreen
 import br.com.refrigeracaopro.ui.screens.FerramentasScreen
 import br.com.refrigeracaopro.ui.screens.GestaoScreen
@@ -152,6 +153,7 @@ class MainActivity : ComponentActivity() {
                         composable("conversor") { ConversorScreen(nav) }
                         composable("graxa") { CalculadoraGraxaScreen(nav) }
                         composable("dados_compressores") { DadosCompressoresScreen(nav) }
+                        composable("dados_ingersoll") { DadosIngersollScreen(nav) }
                         composable("senhas_ihm") { SenhasIHMScreen(nav) }
 
                         composable("projetos") { ProjetosScreen(nav) }

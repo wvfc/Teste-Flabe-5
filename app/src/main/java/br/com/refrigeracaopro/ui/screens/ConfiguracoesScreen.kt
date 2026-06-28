@@ -79,7 +79,7 @@ fun ConfiguracoesScreen(nav: NavController) {
     var tecnico by remember { mutableStateOf(context.nomeTecnico) }
     var registro by remember { mutableStateOf(context.registroTecnico) }
     var chave by remember { mutableStateOf(context.chaveOpenAi) }
-    val modelo = OpenAiClient.MODELOS.first() // modelo fixo (gpt-4o-mini)
+    val modelo = "gpt-4o" // modelo fixo
     val iaLigada = true // assistente sempre ativo; o usuário só informa a chave
     var mostrarChave by remember { mutableStateOf(false) }
     var testando by remember { mutableStateOf(false) }
