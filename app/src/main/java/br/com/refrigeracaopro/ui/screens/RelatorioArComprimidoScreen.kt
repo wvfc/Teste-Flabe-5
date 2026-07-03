@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -148,8 +149,17 @@ fun RelatorioArComprimidoFormScreen(nav: NavController, relatorioId: Long, vm: R
 
     TelaBase(nav, if (relatorioId > 0) numero else "Inspeção – Ar comprimido") { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // Cabeçalho fixo
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            // Abas fixas para trocar de seção; o restante rola (mais espaço ao digitar)
+            ScrollableTabRow(selectedTabIndex = aba.coerceIn(0, titulosAbas.lastIndex), edgePadding = 0.dp) {
+                titulosAbas.forEachIndexed { i, titulo ->
+                    Tab(selected = aba == i, onClick = { aba = i }, text = { Text(titulo) })
+                }
+            }
+
+            Column(
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(16.dp)
+            ) {
+                // Cabeçalho: número, cliente e equipamento (rolam junto com o formulário)
                 Text(numero, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary)
                 SeletorOpcoes(
@@ -162,17 +172,8 @@ fun RelatorioArComprimidoFormScreen(nav: NavController, relatorioId: Long, vm: R
                     equipsDoCliente.find { it.id == equipamentoId }?.let { "${it.tipo} ${it.marca}".trim() } ?: "",
                     aoSelecionar = { texto -> equipamentoId = equipsDoCliente.find { e -> "${e.tipo} ${e.marca}".trim() == texto }?.id }
                 )
-            }
+                HorizontalDivider(Modifier.padding(vertical = 10.dp))
 
-            ScrollableTabRow(selectedTabIndex = aba.coerceIn(0, titulosAbas.lastIndex), edgePadding = 0.dp) {
-                titulosAbas.forEachIndexed { i, titulo ->
-                    Tab(selected = aba == i, onClick = { aba = i }, text = { Text(titulo) })
-                }
-            }
-
-            Column(
-                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)
-            ) {
                 val secoes = RelatorioArComprimido.SECOES
                 when (val titulo = titulosAbas.getOrElse(aba.coerceIn(0, titulosAbas.lastIndex)) { titulosAbas.first() }) {
                     "Conclusão" -> {
@@ -220,10 +221,9 @@ fun RelatorioArComprimidoFormScreen(nav: NavController, relatorioId: Long, vm: R
                         }
                     }
                 }
-            }
 
-            // Ações fixas no rodapé
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                // Ações no fim do formulário (rolam junto para liberar a área de edição)
+                Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = { vm.salvar(montar()) { nav.popBackStack() } },
                     modifier = Modifier.fillMaxWidth().height(50.dp),

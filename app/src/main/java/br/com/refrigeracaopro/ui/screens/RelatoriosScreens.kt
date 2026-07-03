@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -332,8 +334,18 @@ fun RelatorioFormScreen(
 
     TelaBase(nav, if (relatorioId > 0) numero else "Novo relatório") { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // ---- Cabeçalho fixo: número + cliente + equipamento ----
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            // Abas fixas para trocar de seção; o restante rola (mais espaço ao digitar)
+            ScrollableTabRow(selectedTabIndex = aba, edgePadding = 0.dp) {
+                abas.forEachIndexed { i, titulo ->
+                    Tab(selected = aba == i, onClick = { aba = i }, text = { Text(titulo) })
+                }
+            }
+
+            // ---- Cabeçalho + conteúdo da aba (rolável) ----
+            Column(
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(16.dp)
+            ) {
+                // Cabeçalho: número, cliente e equipamento (rolam junto com o formulário)
                 Text(numero, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary)
                 SeletorOpcoes(
@@ -350,18 +362,8 @@ fun RelatorioFormScreen(
                         if (e != null && e.fluido.isNotBlank()) fluido = e.fluido
                     }
                 )
-            }
+                HorizontalDivider(Modifier.padding(vertical = 10.dp))
 
-            ScrollableTabRow(selectedTabIndex = aba, edgePadding = 0.dp) {
-                abas.forEachIndexed { i, titulo ->
-                    Tab(selected = aba == i, onClick = { aba = i }, text = { Text(titulo) })
-                }
-            }
-
-            // ---- Conteúdo da aba selecionada (rolável) ----
-            Column(
-                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)
-            ) {
                 when (abas.getOrElse(aba.coerceIn(0, abas.lastIndex)) { abas.first() }) {
                     "Dados" -> {
                         TituloSecao("Motivo e diagnóstico")
@@ -513,10 +515,9 @@ fun RelatorioFormScreen(
                         AvisoListaCard("Segurança e avisos técnicos", Avisos.SEGURANCA)
                     }
                 }
-            }
 
-            // ---- Ações fixas no rodapé ----
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                // Ações no fim do formulário (rolam junto para liberar a área de edição)
+                Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = { vm.salvar(montar()) { nav.popBackStack() } },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
