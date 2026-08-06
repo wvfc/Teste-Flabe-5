@@ -202,6 +202,40 @@ object StatusAgendamento {
     val TODOS = listOf(AGENDADA, REALIZADA, CANCELADA)
 }
 
+/**
+ * Ensaio de isolação com megômetro, guardado por cliente/equipamento para
+ * acompanhamento da tendência (manutenção preditiva). Os índices calculados
+ * são gravados junto com as leituras para que o histórico não dependa de
+ * recálculo.
+ *
+ * Sem chave estrangeira (como nas OS e nos relatórios): o ensaio continua
+ * válido como registro técnico mesmo que o cadastro do equipamento mude.
+ */
+@Entity(
+    tableName = "ensaios_isolacao",
+    indices = [Index("clienteId"), Index("equipamentoId")]
+)
+data class EnsaioIsolacao(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val numero: String = "", // MEG-AAAA-NNNN
+    val dataHora: Long = System.currentTimeMillis(),
+    val clienteId: Long? = null,
+    val equipamentoId: Long? = null,
+    // Leituras
+    val tensaoV: Double = 0.0,
+    val r30s: Double = 0.0,
+    val r60s: Double = 0.0,
+    val r10min: Double = 0.0,
+    val tempC: Double? = null,
+    val tempBase: Double = 40.0,
+    // Calculados no momento do ensaio
+    val dar: Double? = null,
+    val pi: Double? = null,
+    val puntualCorrigido: Double? = null,
+    val condicao: String = "",
+    val observacoes: String = "",
+)
+
 /** Lançamento financeiro (gestão de receitas e despesas). */
 @Entity(tableName = "lancamentos")
 data class Lancamento(

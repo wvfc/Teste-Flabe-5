@@ -223,6 +223,59 @@ object Megohmetro {
     )
 
     // ------------------------------------------------------------------
+    // Tendência (acompanhamento preditivo)
+    // ------------------------------------------------------------------
+
+    /** Queda percentual que já merece alerta entre dois ensaios. */
+    const val QUEDA_ALERTA = 0.40
+
+    /** Um ponto do histórico: data do ensaio e isolação (corrigida, quando houver). */
+    data class Ponto(val dataHora: Long, val valor: Double)
+
+    data class Tendencia(
+        /** Variação relativa: −0,38 significa queda de 38%. */
+        val variacao: Double,
+        val dias: Long,
+        val alerta: Boolean,
+        val texto: String,
+    )
+
+    /** Variação relativa entre duas leituras (0,25 = subiu 25%). */
+    fun variacao(atual: Double, anterior: Double): Double? =
+        if (anterior > 0) (atual - anterior) / anterior else null
+
+    /**
+     * Tendência entre o ensaio mais antigo e o mais recente da lista.
+     * Espera os pontos ordenados do mais antigo para o mais novo.
+     */
+    fun tendencia(pontos: List<Ponto>): Tendencia? {
+        if (pontos.size < 2) return null
+        val primeiro = pontos.first()
+        val ultimo = pontos.last()
+        val variacao = variacao(ultimo.valor, primeiro.valor) ?: return null
+        val dias = (ultimo.dataHora - primeiro.dataHora) / 86_400_000L
+        val periodo = when {
+            dias >= 60 -> "%d meses".format(dias / 30)
+            dias >= 1 -> "$dias dias"
+            else -> "o mesmo dia"
+        }
+        val percentual = "%.0f%%".format(kotlin.math.abs(variacao) * 100)
+        val texto = when {
+            variacao <= -QUEDA_ALERTA ->
+                "Atenção: a isolação caiu $percentual em $periodo (${pontos.size} ensaios). " +
+                    "Queda dessa ordem indica degradação em curso — antecipe a inspeção."
+            variacao < -0.10 ->
+                "A isolação caiu $percentual em $periodo. Acompanhe de perto no próximo ensaio."
+            variacao < 0.10 ->
+                "Isolação estável ($percentual de variação em $periodo). Comportamento esperado."
+            else ->
+                "A isolação subiu $percentual em $periodo — normalmente reflexo de limpeza, " +
+                    "secagem ou de medição em condição mais seca."
+        }
+        return Tendencia(variacao, dias, variacao <= -QUEDA_ALERTA, texto)
+    }
+
+    // ------------------------------------------------------------------
     // Referência técnica
     // ------------------------------------------------------------------
 

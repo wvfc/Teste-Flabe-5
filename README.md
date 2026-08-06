@@ -33,7 +33,7 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 
 | **Gestão Financeira** | Receitas e despesas por mês, com saldo, categorias, e **importação automática de receita das OS concluídas**. |
 | **Conversor de Unidades** | Conversão entre temperatura, pressão, comprimento, massa, volume, área, velocidade, potência, energia, vazão, tempo, torque e ângulo. |
-| **Diagnóstico de Megômetro** | Isolação puntual (60 s), **DAR** e **PI** calculados automaticamente, correção por temperatura, diagnóstico da condição da isolação (IEEE 43) e referência técnica do ensaio. |
+| **Diagnóstico de Megômetro** | Isolação puntual (60 s), **DAR** e **PI** calculados automaticamente, correção por temperatura, diagnóstico da condição da isolação (IEEE 43), **histórico por cliente/equipamento** com tendência e **relatório em PDF**. |
 
 ### Pressões em psi
 Todas as pressões do app (cálculos de superaquecimento/subresfriamento, campos do relatório, PDF e tabela de gases) são tratadas em **psi**.
@@ -55,6 +55,12 @@ Em **Ferramentas → Diagnóstico de Megômetro** entram as leituras do megger (
 - **PI** = R10min ÷ R1min.
 
 O diagnóstico automático classifica a condição em **Excelente, Bom, Duvidoso, Pobre ou Perigoso** pelas faixas da **IEEE 43** (PI < 1,0 perigoso; 1,0–2,0 pobre; 2,0–4,0 bom; > 4,0 excelente / DAR < 1,25 inadequado; 1,25–1,6 aceitável; > 1,6 excelente), avisa quando a resistência cai durante o ensaio e quando o valor fica abaixo do mínimo de referência (kV + 1) MΩ. A tela traz ainda três abas de referência técnica: **passo a passo** dos ensaios (puntual, DAR e PI), **defeitos comuns e causas** e **fatores de correção de temperatura**.
+
+#### Histórico e tendência (preditiva)
+Cada ensaio pode ser **vinculado a um cliente e a um equipamento** e salvo no histórico (numeração automática `MEG-AAAA-NNNN`). A tela mostra os ensaios anteriores daquela máquina com a variação percentual entre medições e uma leitura da tendência — porque, pela IEEE 43, a **evolução** das leituras corrigidas pesa mais que o valor absoluto de um ensaio isolado. Quedas acima de 40% viram alerta. Tocar em um ensaio do histórico recarrega as leituras na tela.
+
+#### Gerar relatório
+O botão **Gerar relatório** salva o ensaio (se ainda não estiver salvo) e gera um **PDF** com cabeçalho da empresa, dados do cliente e do equipamento, leituras, resultados, diagnóstico, o histórico com a tendência, os critérios da IEEE 43 e os avisos de segurança — pronto para compartilhar com o cliente.
 
 ### Tipos de relatório
 Ao criar um relatório, escolhe-se entre três tipos:

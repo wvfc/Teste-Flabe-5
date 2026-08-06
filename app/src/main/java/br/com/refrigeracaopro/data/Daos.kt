@@ -174,6 +174,40 @@ interface ProjetoDao {
 }
 
 @Dao
+abstract class EnsaioIsolacaoDao {
+    @Query("SELECT * FROM ensaios_isolacao ORDER BY dataHora DESC")
+    abstract fun listar(): Flow<List<EnsaioIsolacao>>
+
+    @Query("SELECT * FROM ensaios_isolacao WHERE equipamentoId = :equipamentoId ORDER BY dataHora DESC")
+    abstract fun listarPorEquipamento(equipamentoId: Long): Flow<List<EnsaioIsolacao>>
+
+    @Query("SELECT * FROM ensaios_isolacao WHERE clienteId = :clienteId ORDER BY dataHora DESC")
+    abstract fun listarPorCliente(clienteId: Long): Flow<List<EnsaioIsolacao>>
+
+    @Query("SELECT * FROM ensaios_isolacao WHERE id = :id")
+    abstract suspend fun buscar(id: Long): EnsaioIsolacao?
+
+    @Query("SELECT COUNT(*) FROM ensaios_isolacao")
+    abstract suspend fun contar(): Int
+
+    @Insert
+    abstract suspend fun inserir(ensaio: EnsaioIsolacao): Long
+
+    @Update
+    abstract suspend fun atualizar(ensaio: EnsaioIsolacao)
+
+    /** Insere um ensaio novo (id = 0) ou atualiza o existente. */
+    open suspend fun salvar(ensaio: EnsaioIsolacao): Long {
+        if (ensaio.id == 0L) return inserir(ensaio)
+        atualizar(ensaio)
+        return ensaio.id
+    }
+
+    @Delete
+    abstract suspend fun excluir(ensaio: EnsaioIsolacao)
+}
+
+@Dao
 interface AgendamentoDao {
     @Query("SELECT * FROM agendamentos ORDER BY dataHora")
     fun listar(): Flow<List<Agendamento>>

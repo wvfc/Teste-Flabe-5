@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.refrigeracaopro.data.Agendamento
 import br.com.refrigeracaopro.data.AppDatabase
 import br.com.refrigeracaopro.data.Cliente
+import br.com.refrigeracaopro.data.EnsaioIsolacao
 import br.com.refrigeracaopro.data.Equipamento
 import br.com.refrigeracaopro.data.OrdemServico
 import br.com.refrigeracaopro.data.Relatorio
@@ -325,6 +326,45 @@ class ProjetosViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     suspend fun buscar(id: Long): br.com.refrigeracaopro.data.Projeto? = dao.buscar(id)
+}
+
+// ---------- Ensaios de isolação (megômetro) ----------
+class MegohmetroViewModel(app: Application) : AndroidViewModel(app) {
+    private val dao = db().ensaioIsolacaoDao()
+
+    val clientes: StateFlow<List<Cliente>> =
+        db().clienteDao().listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val equipamentos: StateFlow<List<Equipamento>> =
+        db().equipamentoDao().listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Histórico do equipamento quando há um selecionado; do cliente quando só
+     * ele foi escolhido; senão, todos os ensaios registrados.
+     */
+    fun historico(clienteId: Long, equipamentoId: Long) = when {
+        equipamentoId > 0 -> dao.listarPorEquipamento(equipamentoId)
+        clienteId > 0 -> dao.listarPorCliente(clienteId)
+        else -> dao.listar()
+    }
+
+    /** Número automático no formato MEG-AAAA-NNNN. */
+    suspend fun proximoNumero(): String {
+        val ano = SimpleDateFormat("yyyy", Locale.getDefault()).format(Date())
+        return "MEG-$ano-%04d".format(dao.contar() + 1)
+    }
+
+    fun salvar(ensaio: EnsaioIsolacao, aoConcluir: (EnsaioIsolacao) -> Unit = {}) {
+        viewModelScope.launch {
+            val comNumero = if (ensaio.numero.isBlank()) ensaio.copy(numero = proximoNumero()) else ensaio
+            val id = dao.salvar(comNumero)
+            aoConcluir(comNumero.copy(id = id))
+        }
+    }
+
+    fun excluir(ensaio: EnsaioIsolacao) {
+        viewModelScope.launch { dao.excluir(ensaio) }
+    }
 }
 
 // ---------- Gestão financeira ----------

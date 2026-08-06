@@ -15,9 +15,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
-        Projeto::class,
+        Projeto::class, EnsaioIsolacao::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun agendamentoDao(): AgendamentoDao
     abstract fun lancamentoDao(): LancamentoDao
     abstract fun projetoDao(): ProjetoDao
+    abstract fun ensaioIsolacaoDao(): EnsaioIsolacaoDao
 
     companion object {
         const val NOME_BANCO = "refrigeracao_pro.db"
@@ -94,13 +95,34 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 6→7: histórico de ensaios de isolação (megômetro). */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ensaios_isolacao (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                        "numero TEXT NOT NULL, dataHora INTEGER NOT NULL, " +
+                        "clienteId INTEGER, equipamentoId INTEGER, " +
+                        "tensaoV REAL NOT NULL, r30s REAL NOT NULL, r60s REAL NOT NULL, " +
+                        "r10min REAL NOT NULL, tempC REAL, tempBase REAL NOT NULL, " +
+                        "dar REAL, pi REAL, puntualCorrigido REAL, " +
+                        "condicao TEXT NOT NULL, observacoes TEXT NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_ensaios_isolacao_clienteId ON ensaios_isolacao (clienteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_ensaios_isolacao_equipamentoId ON ensaios_isolacao (equipamentoId)")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     NOME_BANCO
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                ).addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+                    MIGRATION_5_6, MIGRATION_6_7,
+                )
                     .build().also { instancia = it }
             }
 

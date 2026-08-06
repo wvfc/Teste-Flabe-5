@@ -9,7 +9,9 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
 import br.com.refrigeracaopro.data.Cliente
+import br.com.refrigeracaopro.data.EnsaioIsolacao
 import br.com.refrigeracaopro.data.Equipamento
+import br.com.refrigeracaopro.data.Megohmetro
 import br.com.refrigeracaopro.data.OrdemServico
 import br.com.refrigeracaopro.data.Relatorio
 import br.com.refrigeracaopro.data.Prefs.cnpjEmpresa
@@ -688,6 +690,162 @@ object PdfGenerator {
         arquivo.outputStream().use { doc.writeTo(it) }
         doc.close()
         return arquivo
+    }
+
+    /**
+     * Gera o PDF do ensaio de isolação (megômetro), incluindo o histórico do
+     * equipamento para leitura da tendência.
+     *
+     * [historico] deve vir do mais recente para o mais antigo, já contendo o
+     * ensaio atual.
+     */
+    fun gerarEnsaioIsolacao(
+        context: Context,
+        ensaio: EnsaioIsolacao,
+        cliente: Cliente?,
+        equipamento: Equipamento?,
+        resultado: Megohmetro.Resultado,
+        historico: List<EnsaioIsolacao>,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+
+        b.cabecalho("ENSAIO DE ISOLAÇÃO", ensaio.numero)
+
+        b.secao("Dados gerais")
+        b.camposDuasColunas(
+            listOf(
+                "Data/Hora" to formatoData.format(Date(ensaio.dataHora)),
+                "Técnico" to context.nomeTecnico,
+                "Registro profissional" to context.registroTecnico,
+                "Instrumento" to "Megômetro (megger)",
+            )
+        )
+
+        b.secao("Cliente")
+        b.camposDuasColunas(dadosCliente(cliente))
+
+        if (equipamento != null) {
+            b.secao("Equipamento")
+            b.camposDuasColunas(dadosEquipamento(equipamento))
+        }
+
+        b.secao("Leituras do ensaio")
+        b.tabela(
+            listOf(
+                "Tensão de teste aplicada" to numero(ensaio.tensaoV, 0).comUnidade("V"),
+                "Leitura de 30 segundos (R30s)" to numero(ensaio.r30s).comUnidade("MΩ"),
+                "Leitura de 1 minuto (R60s)" to numero(ensaio.r60s).comUnidade("MΩ"),
+                "Leitura de 10 minutos (R10min)" to numero(ensaio.r10min).comUnidade("MΩ"),
+                "Temperatura do equipamento" to (ensaio.tempC?.let { numero(it, 1) + " °C" } ?: "Não informada"),
+                "Temperatura base de correção" to "${numero(ensaio.tempBase, 0)} °C",
+            )
+        )
+
+        b.secao("Resultados")
+        b.tabela(
+            listOf(
+                "Isolação puntual (60 s)" to (resultado.puntual?.let { numero(it) + " MΩ" } ?: ""),
+                "Isolação corrigida para ${numero(ensaio.tempBase, 0)} °C" to
+                    (resultado.puntualCorrigido?.let { numero(it) + " MΩ" } ?: ""),
+                "Fator de correção aplicado" to (resultado.fatorTemperatura?.let { "× " + numero(it, 2) } ?: ""),
+                "Índice de Absorção (DAR = R60s ÷ R30s)" to
+                    (resultado.dar?.let { numero(it, 2) + "  —  " + resultado.classeDar } ?: ""),
+                "Índice de Polarização (PI = R10min ÷ R1min)" to
+                    (resultado.pi?.let { numero(it, 2) + "  —  " + resultado.classePi } ?: ""),
+                "Mínimo de referência (kV + 1)" to (resultado.minimoRecomendado?.let {
+                    numero(it, 1) + " MΩ  —  " + when (resultado.atendeMinimo) {
+                        true -> "atendido"
+                        false -> "NÃO atendido"
+                        else -> "-"
+                    }
+                } ?: ""),
+            )
+        )
+
+        resultado.condicao?.let { condicao ->
+            b.secao("Diagnóstico — condição: ${condicao.rotulo.uppercase()}")
+            b.paragrafo(resultado.diagnostico)
+            if (resultado.recomendacao.isNotBlank()) b.paragrafo("Recomendação: ${resultado.recomendacao}")
+            if (resultado.avisos.isNotEmpty()) {
+                b.paragrafo(resultado.avisos.joinToString("\n") { "• $it" })
+            }
+        }
+
+        if (ensaio.observacoes.isNotBlank()) {
+            b.secao("Observações")
+            b.paragrafo(ensaio.observacoes)
+        }
+
+        // Histórico do equipamento: base da análise de tendência
+        if (historico.size > 1) {
+            b.secao("Histórico e tendência")
+            val formatoDia = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+            b.tabela(
+                historico.map { e ->
+                    val valor = e.puntualCorrigido ?: e.r60s
+                    val indices = listOfNotNull(
+                        e.pi?.let { "PI " + numero(it, 2) },
+                        e.dar?.let { "DAR " + numero(it, 2) },
+                        e.condicao.takeIf { it.isNotBlank() },
+                    ).joinToString(" • ")
+                    "${formatoDia.format(Date(e.dataHora))} — ${numero(valor)} MΩ" to indices
+                }
+            )
+            val pontos = historico.sortedBy { it.dataHora }
+                .map { Megohmetro.Ponto(it.dataHora, it.puntualCorrigido ?: it.r60s) }
+            Megohmetro.tendencia(pontos)?.let { b.paragrafo(it.texto) }
+            b.paragrafo(
+                "Observação: pela IEEE 43 a tendência das leituras corrigidas pesa mais que o " +
+                    "valor absoluto de um ensaio isolado."
+            )
+        }
+
+        b.secao("Critérios de avaliação (IEEE 43)")
+        b.tabela(
+            listOf(
+                "PI menor que 1,0" to "Perigoso",
+                "PI de 1,0 a 2,0" to "Pobre",
+                "PI de 2,0 a 4,0" to "Bom",
+                "PI acima de 4,0" to "Excelente",
+                "DAR menor que 1,25" to "Inadequado",
+                "DAR de 1,25 a 1,6" to "Aceitável",
+                "DAR acima de 1,6" to "Excelente",
+            )
+        )
+        b.paragrafo(Megohmetro.CORRECAO_FORMULA + " — a resistência de isolamento cai pela metade a cada 10 °C de aumento de temperatura.")
+
+        b.secao("Avisos técnicos e de segurança")
+        b.paragrafo(
+            (Megohmetro.PASSO_A_PASSO_GERAL.joinToString("\n") { "• $it" }) + "\n" +
+                "• " + br.com.refrigeracaopro.data.Avisos.CALCULO_AUXILIAR
+        )
+
+        b.assinaturas(
+            listOf(
+                (context.nomeTecnico.ifBlank { "Técnico" } +
+                    context.registroTecnico.let { if (it.isNotBlank()) " — $it" else "" }) to "",
+            )
+        )
+
+        b.fecharPagina()
+        val nome = ensaio.numero.ifBlank { "ensaio-isolacao-${ensaio.id}" }
+        val arquivo = File(Arquivos.pastaPdfs(context), "$nome.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    /** Número em pt-BR, sem casas desnecessárias. */
+    private fun numero(valor: Double, casas: Int = 2): String {
+        val texto = when {
+            casas == 0 -> "%.0f".format(valor)
+            valor >= 1000 -> "%.0f".format(valor)
+            valor >= 10 && casas == 2 -> "%.1f".format(valor)
+            else -> "%.${casas}f".format(valor)
+        }
+        return texto.replace('.', ',')
     }
 
     private fun String.comUnidade(unidade: String): String =
