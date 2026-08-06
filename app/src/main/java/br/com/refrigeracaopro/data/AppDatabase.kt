@@ -15,9 +15,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
-        Projeto::class, EnsaioIsolacao::class,
+        Projeto::class, EnsaioIsolacao::class, InspecaoTermografica::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun lancamentoDao(): LancamentoDao
     abstract fun projetoDao(): ProjetoDao
     abstract fun ensaioIsolacaoDao(): EnsaioIsolacaoDao
+    abstract fun inspecaoTermograficaDao(): InspecaoTermograficaDao
 
     companion object {
         const val NOME_BANCO = "refrigeracao_pro.db"
@@ -113,6 +114,30 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 7→8: inspeções termográficas. */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS inspecoes_termograficas (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                        "numero TEXT NOT NULL, dataHora INTEGER NOT NULL, " +
+                        "clienteId INTEGER, equipamentoId INTEGER, ponto TEXT NOT NULL, " +
+                        "material TEXT NOT NULL, emissividade REAL NOT NULL, " +
+                        "emissividadeCamera REAL, tempRefletida REAL, tempAmbiente REAL, " +
+                        "umidade REAL, distanciaM REAL, relacaoDS REAL, anguloGraus REAL, " +
+                        "externo INTEGER NOT NULL, ventoMs REAL, " +
+                        "correnteMedida REAL, correnteNominal REAL, classeIsolamento TEXT NOT NULL, " +
+                        "tempPonto REAL, tempSimilar REAL, " +
+                        "deltaTSimilar REAL, deltaTAmbiente REAL, deltaTCorrigido REAL, " +
+                        "severidade TEXT NOT NULL, diagnostico TEXT NOT NULL, recomendacao TEXT NOT NULL, " +
+                        "fotosTermicas TEXT NOT NULL, fotosVisiveis TEXT NOT NULL, " +
+                        "legendasFotos TEXT NOT NULL, observacoes TEXT NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_inspecoes_termograficas_clienteId ON inspecoes_termograficas (clienteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_inspecoes_termograficas_equipamentoId ON inspecoes_termograficas (equipamentoId)")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
@@ -121,7 +146,7 @@ abstract class AppDatabase : RoomDatabase() {
                     NOME_BANCO
                 ).addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                    MIGRATION_5_6, MIGRATION_6_7,
+                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
                 )
                     .build().also { instancia = it }
             }

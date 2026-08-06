@@ -49,6 +49,7 @@ import br.com.refrigeracaopro.ui.screens.RelatorioFormScreen
 import br.com.refrigeracaopro.ui.screens.RelatoriosScreen
 import br.com.refrigeracaopro.ui.screens.SenhasIHMScreen
 import br.com.refrigeracaopro.ui.screens.ServicosScreen
+import br.com.refrigeracaopro.ui.screens.TermografiaScreen
 import br.com.refrigeracaopro.ui.theme.RefrigeracaoProTheme
 
 /**
@@ -155,6 +156,7 @@ class MainActivity : ComponentActivity() {
                         composable("conversor") { ConversorScreen(nav) }
                         composable("graxa") { CalculadoraGraxaScreen(nav) }
                         composable("megohmetro") { MegohmetroScreen(nav) }
+                        composable("termografia") { TermografiaScreen(nav) }
                         composable("compressores_marcas") { MarcasCompressoresScreen(nav) }
                         composable("dados_compressores") { DadosCompressoresScreen(nav) }
                         composable("dados_ingersoll") { DadosIngersollScreen(nav) }

@@ -11,7 +11,9 @@ import android.graphics.pdf.PdfDocument
 import br.com.refrigeracaopro.data.Cliente
 import br.com.refrigeracaopro.data.EnsaioIsolacao
 import br.com.refrigeracaopro.data.Equipamento
+import br.com.refrigeracaopro.data.InspecaoTermografica
 import br.com.refrigeracaopro.data.Megohmetro
+import br.com.refrigeracaopro.data.Termografia
 import br.com.refrigeracaopro.data.OrdemServico
 import br.com.refrigeracaopro.data.Relatorio
 import br.com.refrigeracaopro.data.Prefs.cnpjEmpresa
@@ -831,6 +833,173 @@ object PdfGenerator {
 
         b.fecharPagina()
         val nome = ensaio.numero.ifBlank { "ensaio-isolacao-${ensaio.id}" }
+        val arquivo = File(Arquivos.pastaPdfs(context), "$nome.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    /**
+     * Gera o laudo termográfico em PDF, com as condições do ensaio, os
+     * cálculos, o diagnóstico, as imagens térmica e visível e o histórico do
+     * ponto inspecionado.
+     *
+     * [historico] deve vir do mais recente para o mais antigo, já contendo a
+     * inspeção atual.
+     */
+    fun gerarInspecaoTermografica(
+        context: Context,
+        inspecao: InspecaoTermografica,
+        cliente: Cliente?,
+        equipamento: Equipamento?,
+        resultado: Termografia.Resultado,
+        historico: List<InspecaoTermografica>,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+
+        b.cabecalho("LAUDO TERMOGRÁFICO", inspecao.numero)
+
+        b.secao("Dados gerais")
+        b.camposDuasColunas(
+            listOf(
+                "Data/Hora" to formatoData.format(Date(inspecao.dataHora)),
+                "Técnico" to context.nomeTecnico,
+                "Registro profissional" to context.registroTecnico,
+                "Ponto inspecionado" to inspecao.ponto,
+            )
+        )
+
+        b.secao("Cliente")
+        b.camposDuasColunas(dadosCliente(cliente))
+
+        if (equipamento != null) {
+            b.secao("Equipamento")
+            b.camposDuasColunas(dadosEquipamento(equipamento))
+        }
+
+        b.secao("Condições do ensaio")
+        b.tabela(
+            listOf(
+                "Material da superfície" to inspecao.material,
+                "Emissividade adotada (ε)" to numero(inspecao.emissividade, 2),
+                "Emissividade usada na câmera" to (inspecao.emissividadeCamera?.let { numero(it, 2) } ?: ""),
+                "Temperatura refletida" to (inspecao.tempRefletida?.let { numero(it, 1) + " °C" } ?: "Não informada"),
+                "Temperatura ambiente" to (inspecao.tempAmbiente?.let { numero(it, 1) + " °C" } ?: ""),
+                "Umidade relativa" to (inspecao.umidade?.let { numero(it, 0) + " %" } ?: ""),
+                "Distância até o alvo" to (inspecao.distanciaM?.let { numero(it, 1) + " m" } ?: ""),
+                "Relação D:S da câmera" to (inspecao.relacaoDS?.let { "1:" + numero(it, 0) } ?: ""),
+                "Ângulo de visada" to (inspecao.anguloGraus?.let { numero(it, 0) + "°" } ?: ""),
+                "Local da medição" to if (inspecao.externo) "Externo" else "Interno",
+                "Velocidade do vento" to (inspecao.ventoMs?.let { numero(it, 1) + " m/s" } ?: ""),
+            )
+        )
+
+        b.secao("Carga e temperaturas medidas")
+        b.tabela(
+            listOf(
+                "Corrente medida" to (inspecao.correnteMedida?.let { numero(it, 1) + " A" } ?: ""),
+                "Corrente nominal" to (inspecao.correnteNominal?.let { numero(it, 1) + " A" } ?: ""),
+                "Carga no momento da medição" to (resultado.percentualCarga?.let { numero(it, 0) + " % da nominal" } ?: ""),
+                "Classe de isolamento" to inspecao.classeIsolamento.takeIf { it != "—" }.orEmpty(),
+                "Temperatura do ponto quente" to (inspecao.tempPonto?.let { numero(it, 1) + " °C" } ?: ""),
+                "Temperatura do componente similar" to (inspecao.tempSimilar?.let { numero(it, 1) + " °C" } ?: ""),
+            )
+        )
+
+        b.secao("Resultados")
+        b.tabela(
+            listOf(
+                "ΔT sobre componente similar" to (resultado.deltaTSimilar?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT sobre o ambiente" to (resultado.deltaTAmbiente?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT projetado para a carga nominal" to (resultado.deltaTCorrigidoCarga?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT corrigido pelo vento" to (resultado.deltaTCorrigidoVento?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT considerado na avaliação" to (resultado.deltaTAvaliado?.let { numero(it, 1) + " °C" } ?: ""),
+                "Temperatura reestimada pela emissividade" to
+                    (resultado.temperaturaCorrigidaEmissividade?.let { numero(it, 1) + " °C (aproximada)" } ?: ""),
+                "Menor alvo mensurável na distância" to (resultado.menorAlvoMm?.let { numero(it, 0) + " mm" } ?: ""),
+                "Margem até o limite da classe" to (resultado.margemClasse?.let { numero(it, 0) + " °C" } ?: ""),
+            )
+        )
+
+        resultado.severidade?.let { severidade ->
+            b.secao("Diagnóstico — ${severidade.rotulo.uppercase()}")
+            b.paragrafo(resultado.diagnostico)
+            b.paragrafo("Ação recomendada: ${resultado.recomendacao}")
+            if (resultado.avisos.isNotEmpty()) {
+                b.paragrafo(resultado.avisos.joinToString("\n") { "• $it" })
+            }
+        }
+
+        if (inspecao.observacoes.isNotBlank()) {
+            b.secao("Observações")
+            b.paragrafo(inspecao.observacoes)
+        }
+
+        // Imagens térmica e visível, cada uma com sua legenda
+        val legendas = Termografia.decodificarLegendas(inspecao.legendasFotos)
+        val termicas = Arquivos.textoParaLista(inspecao.fotosTermicas).map { it to legendas[it].orEmpty() }
+        val visiveis = Arquivos.textoParaLista(inspecao.fotosVisiveis).map { it to legendas[it].orEmpty() }
+        b.fotosComLegenda("Imagens térmicas", termicas)
+        b.fotosComLegenda("Fotos visíveis", visiveis)
+
+        // Histórico do mesmo ponto: é o que mostra a evolução da anomalia
+        val doPonto = historico.filter {
+            inspecao.ponto.isNotBlank() && it.ponto.equals(inspecao.ponto, ignoreCase = true)
+        }
+        if (doPonto.size > 1) {
+            b.secao("Histórico do ponto")
+            val formatoDia = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+            b.tabela(
+                doPonto.map { i ->
+                    val dados = listOfNotNull(
+                        i.tempPonto?.let { numero(it, 1) + " °C" },
+                        i.deltaTCorrigido?.let { "ΔT " + numero(it, 1) + " °C" },
+                        i.severidade.takeIf { it.isNotBlank() },
+                    ).joinToString(" • ")
+                    formatoDia.format(Date(i.dataHora)) to dados
+                }
+            )
+            val recente = doPonto.first().deltaTCorrigido ?: doPonto.first().deltaTSimilar
+            val antigo = doPonto.last().deltaTCorrigido ?: doPonto.last().deltaTSimilar
+            if (recente != null && antigo != null) {
+                val variacao = recente - antigo
+                b.paragrafo(
+                    if (variacao > 0)
+                        "O ΔT deste ponto subiu ${numero(variacao, 1)} °C desde a primeira inspeção " +
+                            "(${numero(antigo, 1)} °C → ${numero(recente, 1)} °C)."
+                    else
+                        "O ΔT deste ponto caiu ${numero(-variacao, 1)} °C desde a primeira inspeção " +
+                            "(${numero(antigo, 1)} °C → ${numero(recente, 1)} °C)."
+                )
+            }
+        }
+
+        b.secao("Critérios de avaliação (NETA MTS / NFPA 70B)")
+        b.tabela(
+            Termografia.CRITERIOS.map { (similar, ambiente, classificacao) ->
+                "ΔT similar $similar  |  ΔT ambiente $ambiente" to classificacao
+            }
+        )
+
+        b.secao("Método e limitações")
+        b.paragrafo(
+            "As temperaturas deste laudo foram lidas na câmera termográfica e digitadas pelo " +
+                "técnico responsável. O ΔT é projetado para a corrente nominal pela relação " +
+                "ΔT × (I_nominal ÷ I_medida)², válida para aquecimento por efeito Joule.\n" +
+                "• " + br.com.refrigeracaopro.data.Avisos.CALCULO_AUXILIAR
+        )
+
+        b.assinaturas(
+            listOf(
+                (context.nomeTecnico.ifBlank { "Técnico" } +
+                    context.registroTecnico.let { if (it.isNotBlank()) " — $it" else "" }) to "",
+            )
+        )
+
+        b.fecharPagina()
+        val nome = inspecao.numero.ifBlank { "termografia-${inspecao.id}" }
         val arquivo = File(Arquivos.pastaPdfs(context), "$nome.pdf")
         arquivo.outputStream().use { doc.writeTo(it) }
         doc.close()

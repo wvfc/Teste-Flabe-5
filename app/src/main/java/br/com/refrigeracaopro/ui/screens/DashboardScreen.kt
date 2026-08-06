@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -106,6 +107,7 @@ fun FerramentasScreen(nav: NavController) {
         Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
         Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
         Modulo("Diagnóstico de Megômetro", Icons.Default.ElectricBolt, "megohmetro"),
+        Modulo("Análise Termográfica", Icons.Default.Thermostat, "termografia"),
         Modulo("Senhas IHM", Icons.Default.Password, "senhas_ihm"),
         Modulo("Buscar Manual", Icons.AutoMirrored.Filled.MenuBook, "manuais"),
     )

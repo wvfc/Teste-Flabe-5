@@ -33,6 +33,7 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 
 | **Gestão Financeira** | Receitas e despesas por mês, com saldo, categorias, e **importação automática de receita das OS concluídas**. |
 | **Conversor de Unidades** | Conversão entre temperatura, pressão, comprimento, massa, volume, área, velocidade, potência, energia, vazão, tempo, torque e ângulo. |
+| **Análise Termográfica** | Emissividade por material, correção do ΔT pela carga e pelo vento, checagem de emissividade e de alvo mínimo, diagnóstico de severidade (NETA/NFPA 70B), imagens térmica e visível, histórico por ponto e **laudo em PDF**. |
 | **Diagnóstico de Megômetro** | Isolação puntual (60 s), **DAR** e **PI** calculados automaticamente, correção por temperatura, diagnóstico da condição da isolação (IEEE 43), **histórico por cliente/equipamento** com tendência e **relatório em PDF**. |
 
 ### Pressões em psi
@@ -61,6 +62,26 @@ Cada ensaio pode ser **vinculado a um cliente e a um equipamento** e salvo no hi
 
 #### Gerar relatório
 O botão **Gerar relatório** salva o ensaio (se ainda não estiver salvo) e gera um **PDF** com cabeçalho da empresa, dados do cliente e do equipamento, leituras, resultados, diagnóstico, o histórico com a tendência, os critérios da IEEE 43 e os avisos de segurança — pronto para compartilhar com o cliente.
+
+### Análise Termográfica
+Em **Ferramentas → Análise Termográfica**. As temperaturas são **digitadas pelo técnico** a partir da leitura da câmera — o app não lê o arquivo radiométrico do equipamento.
+
+**Entrada:** cliente, equipamento e ponto inspecionado (texto livre); condições do ensaio (material da superfície, que preenche a emissividade automaticamente, ε usado na câmera, temperatura refletida, ambiente, umidade, distância, relação D:S, ângulo, local interno/externo e vento); carga no momento da medição (corrente medida e nominal) e classe de isolamento; temperaturas do ponto quente e do componente similar.
+
+**Cálculos:**
+- ΔT sobre componente similar e ΔT sobre o ambiente;
+- **projeção para a carga nominal** — `ΔT × (I_nominal ÷ I_medida)²`, já que o aquecimento por efeito Joule cresce com o quadrado da corrente (medir com a máquina aliviada subestima a anomalia);
+- correção por vento em medição externa;
+- reestimativa da temperatura quando a câmera estava com a emissividade errada (aproximada — ignora transmissão atmosférica);
+- menor alvo mensurável a partir da relação D:S e da distância.
+
+**Diagnóstico automático** em cinco níveis (Normal, Possível deficiência, Deficiência provável, Discrepância grave, Crítico) pelas faixas NETA MTS / NFPA 70B, com ação recomendada e avisos sobre carga insuficiente, emissividade baixa, ângulo aberto, temperatura refletida ausente e limite da classe de isolamento.
+
+**Fotos:** imagens térmicas e fotos visíveis do mesmo ponto, cada uma com legenda, normalizadas em **1080 × 900** (encaixadas na moldura, sem distorcer) para o laudo sair sempre com a mesma qualidade.
+
+**Referência técnica em quatro abas:** como medir (passo a passo, inclusive o método do papel-alumínio para a temperatura refletida), erros comuns, emissividade por material (metais, elétrico/industrial, construção e diversos) e o que inspecionar em cada equipamento.
+
+**Histórico e laudo:** as inspeções ficam guardadas por cliente/equipamento (`TR-AAAA-NNNN`), com destaque para a evolução do ΔT do mesmo ponto, e o botão **Gerar relatório** emite o PDF com condições, cálculos, diagnóstico, imagens pareadas, histórico e critérios.
 
 ### Tipos de relatório
 Ao criar um relatório, escolhe-se entre três tipos:

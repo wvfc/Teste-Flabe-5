@@ -8,6 +8,7 @@ import br.com.refrigeracaopro.data.AppDatabase
 import br.com.refrigeracaopro.data.Cliente
 import br.com.refrigeracaopro.data.EnsaioIsolacao
 import br.com.refrigeracaopro.data.Equipamento
+import br.com.refrigeracaopro.data.InspecaoTermografica
 import br.com.refrigeracaopro.data.OrdemServico
 import br.com.refrigeracaopro.data.Relatorio
 import br.com.refrigeracaopro.data.Servico
@@ -364,6 +365,45 @@ class MegohmetroViewModel(app: Application) : AndroidViewModel(app) {
 
     fun excluir(ensaio: EnsaioIsolacao) {
         viewModelScope.launch { dao.excluir(ensaio) }
+    }
+}
+
+// ---------- Análise termográfica ----------
+class TermografiaViewModel(app: Application) : AndroidViewModel(app) {
+    private val dao = db().inspecaoTermograficaDao()
+
+    val clientes: StateFlow<List<Cliente>> =
+        db().clienteDao().listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val equipamentos: StateFlow<List<Equipamento>> =
+        db().equipamentoDao().listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Inspeções do equipamento quando há um selecionado; do cliente quando só
+     * ele foi escolhido; senão, todas as registradas.
+     */
+    fun historico(clienteId: Long, equipamentoId: Long) = when {
+        equipamentoId > 0 -> dao.listarPorEquipamento(equipamentoId)
+        clienteId > 0 -> dao.listarPorCliente(clienteId)
+        else -> dao.listar()
+    }
+
+    /** Número automático no formato TR-AAAA-NNNN. */
+    suspend fun proximoNumero(): String {
+        val ano = SimpleDateFormat("yyyy", Locale.getDefault()).format(Date())
+        return "TR-$ano-%04d".format(dao.contar() + 1)
+    }
+
+    fun salvar(inspecao: InspecaoTermografica, aoConcluir: (InspecaoTermografica) -> Unit = {}) {
+        viewModelScope.launch {
+            val comNumero = if (inspecao.numero.isBlank()) inspecao.copy(numero = proximoNumero()) else inspecao
+            val id = dao.salvar(comNumero)
+            aoConcluir(comNumero.copy(id = id))
+        }
+    }
+
+    fun excluir(inspecao: InspecaoTermografica) {
+        viewModelScope.launch { dao.excluir(inspecao) }
     }
 }
 

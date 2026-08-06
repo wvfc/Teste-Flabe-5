@@ -273,3 +273,35 @@ interface EnsaioIsolacaoDao {
     @Delete
     suspend fun excluir(ensaio: EnsaioIsolacao)
 }
+
+@Dao
+interface InspecaoTermograficaDao {
+    @Query("SELECT * FROM inspecoes_termograficas ORDER BY dataHora DESC")
+    fun listar(): Flow<List<InspecaoTermografica>>
+
+    @Query("SELECT * FROM inspecoes_termograficas WHERE equipamentoId = :equipamentoId ORDER BY dataHora DESC")
+    fun listarPorEquipamento(equipamentoId: Long): Flow<List<InspecaoTermografica>>
+
+    @Query("SELECT * FROM inspecoes_termograficas WHERE clienteId = :clienteId ORDER BY dataHora DESC")
+    fun listarPorCliente(clienteId: Long): Flow<List<InspecaoTermografica>>
+
+    @Query("SELECT * FROM inspecoes_termograficas WHERE id = :id")
+    suspend fun buscar(id: Long): InspecaoTermografica?
+
+    @Query("SELECT COUNT(*) FROM inspecoes_termograficas")
+    suspend fun contar(): Int
+
+    @Insert
+    suspend fun inserir(inspecao: InspecaoTermografica): Long
+
+    @Update
+    suspend fun atualizar(inspecao: InspecaoTermografica)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(inspecao: InspecaoTermografica): Long =
+        if (inspecao.id == 0L) inserir(inspecao) else { atualizar(inspecao); inspecao.id }
+
+    @Delete
+    suspend fun excluir(inspecao: InspecaoTermografica)
+}

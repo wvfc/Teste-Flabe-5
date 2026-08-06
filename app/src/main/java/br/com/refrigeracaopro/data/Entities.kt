@@ -236,6 +236,58 @@ data class EnsaioIsolacao(
     val observacoes: String = "",
 )
 
+/**
+ * Inspeção termográfica de um ponto do equipamento. As temperaturas são
+ * digitadas pelo técnico a partir da leitura da câmera.
+ *
+ * Sem chave estrangeira, como nos demais registros técnicos: a inspeção
+ * continua valendo como laudo mesmo que o cadastro mude depois.
+ */
+@Entity(
+    tableName = "inspecoes_termograficas",
+    indices = [Index("clienteId"), Index("equipamentoId")]
+)
+data class InspecaoTermografica(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val numero: String = "", // TR-AAAA-NNNN
+    val dataHora: Long = System.currentTimeMillis(),
+    val clienteId: Long? = null,
+    val equipamentoId: Long? = null,
+    val ponto: String = "", // texto livre: "Disjuntor R do QGBT", "Mancal LA"
+    // Condições do ensaio
+    val material: String = "",
+    val emissividade: Double = 0.95,
+    val emissividadeCamera: Double? = null,
+    val tempRefletida: Double? = null,
+    val tempAmbiente: Double? = null,
+    val umidade: Double? = null,
+    val distanciaM: Double? = null,
+    val relacaoDS: Double? = null,
+    val anguloGraus: Double? = null,
+    val externo: Boolean = false,
+    val ventoMs: Double? = null,
+    // Carga no momento da medição
+    val correnteMedida: Double? = null,
+    val correnteNominal: Double? = null,
+    val classeIsolamento: String = "—",
+    // Medições
+    val tempPonto: Double? = null,
+    val tempSimilar: Double? = null,
+    // Calculados
+    val deltaTSimilar: Double? = null,
+    val deltaTAmbiente: Double? = null,
+    val deltaTCorrigido: Double? = null,
+    val severidade: String = "",
+    val diagnostico: String = "",
+    val recomendacao: String = "",
+    // Registro fotográfico (caminhos separados por "|")
+    val fotosTermicas: String = "",
+    val fotosVisiveis: String = "",
+    /** Legendas das fotos no formato "caminho::legenda", separadas por "|". */
+    val legendasFotos: String = "",
+    val observacoes: String = "",
+)
+
 /** Lançamento financeiro (gestão de receitas e despesas). */
 @Entity(tableName = "lancamentos")
 data class Lancamento(
