@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderShared
@@ -104,6 +105,7 @@ fun FerramentasScreen(nav: NavController) {
         Modulo("Dados de Compressores", Icons.Default.PrecisionManufacturing, "compressores_marcas"),
         Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
         Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
+        Modulo("Megôhmetro", Icons.Default.ElectricBolt, "megohmetro"),
         Modulo("Senhas IHM", Icons.Default.Password, "senhas_ihm"),
         Modulo("Buscar Manual", Icons.AutoMirrored.Filled.MenuBook, "manuais"),
     )

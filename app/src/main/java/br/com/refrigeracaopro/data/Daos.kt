@@ -3,8 +3,8 @@ package br.com.refrigeracaopro.data
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -38,8 +38,23 @@ interface ClienteDao {
     @Query("SELECT * FROM clientes WHERE id = :id")
     suspend fun buscar(id: Long): Cliente?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(cliente: Cliente): Long
+    @Insert
+    suspend fun inserir(cliente: Cliente): Long
+
+    @Update
+    suspend fun atualizar(cliente: Cliente)
+
+    /**
+     * Insere um novo cliente ou atualiza o existente.
+     *
+     * IMPORTANTE: não usar @Insert(REPLACE) aqui. No SQLite, "INSERT OR REPLACE"
+     * apaga a linha antiga antes de inserir a nova, e esse DELETE dispara o
+     * ON DELETE CASCADE de "equipamentos" — ou seja, editar um cliente apagava
+     * todos os equipamentos vinculados a ele.
+     */
+    @Transaction
+    suspend fun salvar(cliente: Cliente): Long =
+        if (cliente.id == 0L) inserir(cliente) else { atualizar(cliente); cliente.id }
 
     @Delete
     suspend fun excluir(cliente: Cliente)
@@ -56,8 +71,16 @@ interface EquipamentoDao {
     @Query("SELECT * FROM equipamentos WHERE id = :id")
     suspend fun buscar(id: Long): Equipamento?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(equipamento: Equipamento): Long
+    @Insert
+    suspend fun inserir(equipamento: Equipamento): Long
+
+    @Update
+    suspend fun atualizar(equipamento: Equipamento)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(equipamento: Equipamento): Long =
+        if (equipamento.id == 0L) inserir(equipamento) else { atualizar(equipamento); equipamento.id }
 
     @Delete
     suspend fun excluir(equipamento: Equipamento)
@@ -71,8 +94,16 @@ interface ServicoDao {
     @Query("SELECT COUNT(*) FROM servicos")
     suspend fun contar(): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(servico: Servico): Long
+    @Insert
+    suspend fun inserir(servico: Servico): Long
+
+    @Update
+    suspend fun atualizar(servico: Servico)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(servico: Servico): Long =
+        if (servico.id == 0L) inserir(servico) else { atualizar(servico); servico.id }
 
     @Insert
     suspend fun inserirTodos(servicos: List<Servico>)
@@ -95,8 +126,16 @@ interface OrdemServicoDao {
     @Query("SELECT * FROM ordens_servico WHERE clienteId = :clienteId ORDER BY dataHora DESC")
     fun listarPorCliente(clienteId: Long): Flow<List<OrdemServico>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(os: OrdemServico): Long
+    @Insert
+    suspend fun inserir(os: OrdemServico): Long
+
+    @Update
+    suspend fun atualizar(os: OrdemServico)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(os: OrdemServico): Long =
+        if (os.id == 0L) inserir(os) else { atualizar(os); os.id }
 
     @Delete
     suspend fun excluir(os: OrdemServico)
@@ -113,8 +152,16 @@ interface RelatorioDao {
     @Query("SELECT COUNT(*) FROM relatorios")
     suspend fun contar(): Int
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(relatorio: Relatorio): Long
+    @Insert
+    suspend fun inserir(relatorio: Relatorio): Long
+
+    @Update
+    suspend fun atualizar(relatorio: Relatorio)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(relatorio: Relatorio): Long =
+        if (relatorio.id == 0L) inserir(relatorio) else { atualizar(relatorio); relatorio.id }
 
     @Delete
     suspend fun excluir(relatorio: Relatorio)
@@ -134,8 +181,16 @@ interface LancamentoDao {
     @Query("SELECT * FROM lancamentos WHERE ordemServicoId = :osId LIMIT 1")
     suspend fun buscarPorOS(osId: Long): Lancamento?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(lancamento: Lancamento): Long
+    @Insert
+    suspend fun inserir(lancamento: Lancamento): Long
+
+    @Update
+    suspend fun atualizar(lancamento: Lancamento)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(lancamento: Lancamento): Long =
+        if (lancamento.id == 0L) inserir(lancamento) else { atualizar(lancamento); lancamento.id }
 
     @Delete
     suspend fun excluir(lancamento: Lancamento)
@@ -149,8 +204,16 @@ interface ProjetoDao {
     @Query("SELECT * FROM projetos WHERE id = :id")
     suspend fun buscar(id: Long): Projeto?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(projeto: Projeto): Long
+    @Insert
+    suspend fun inserir(projeto: Projeto): Long
+
+    @Update
+    suspend fun atualizar(projeto: Projeto)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(projeto: Projeto): Long =
+        if (projeto.id == 0L) inserir(projeto) else { atualizar(projeto); projeto.id }
 
     @Delete
     suspend fun excluir(projeto: Projeto)
@@ -164,8 +227,16 @@ interface AgendamentoDao {
     @Query("SELECT * FROM agendamentos WHERE id = :id")
     suspend fun buscar(id: Long): Agendamento?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(agendamento: Agendamento): Long
+    @Insert
+    suspend fun inserir(agendamento: Agendamento): Long
+
+    @Update
+    suspend fun atualizar(agendamento: Agendamento)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(agendamento: Agendamento): Long =
+        if (agendamento.id == 0L) inserir(agendamento) else { atualizar(agendamento); agendamento.id }
 
     @Delete
     suspend fun excluir(agendamento: Agendamento)
