@@ -24,25 +24,42 @@ interface UserDao {
 }
 
 @Dao
-interface ClienteDao {
+abstract class ClienteDao {
     @Query("SELECT * FROM clientes ORDER BY nome COLLATE NOCASE")
-    fun listar(): Flow<List<Cliente>>
+    abstract fun listar(): Flow<List<Cliente>>
 
     @Query(
         "SELECT * FROM clientes WHERE nome LIKE '%' || :busca || '%' " +
             "OR cpfCnpj LIKE '%' || :busca || '%' OR cidade LIKE '%' || :busca || '%' " +
             "ORDER BY nome COLLATE NOCASE"
     )
-    fun pesquisar(busca: String): Flow<List<Cliente>>
+    abstract fun pesquisar(busca: String): Flow<List<Cliente>>
 
     @Query("SELECT * FROM clientes WHERE id = :id")
-    suspend fun buscar(id: Long): Cliente?
+    abstract suspend fun buscar(id: Long): Cliente?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun salvar(cliente: Cliente): Long
+    @Insert
+    abstract suspend fun inserir(cliente: Cliente): Long
+
+    @Update
+    abstract suspend fun atualizar(cliente: Cliente)
+
+    /**
+     * Insere um cliente novo (id = 0) ou atualiza o existente.
+     *
+     * Importante: aqui **não** se usa `@Insert(onConflict = REPLACE)`. No SQLite
+     * o REPLACE apaga a linha antiga antes de gravar a nova, e o
+     * `ON DELETE CASCADE` da tabela de equipamentos levava junto todas as
+     * máquinas do cliente — bastava editar o cadastro para elas sumirem.
+     */
+    open suspend fun salvar(cliente: Cliente): Long {
+        if (cliente.id == 0L) return inserir(cliente)
+        atualizar(cliente)
+        return cliente.id
+    }
 
     @Delete
-    suspend fun excluir(cliente: Cliente)
+    abstract suspend fun excluir(cliente: Cliente)
 }
 
 @Dao

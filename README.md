@@ -33,6 +33,7 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 
 | **Gestão Financeira** | Receitas e despesas por mês, com saldo, categorias, e **importação automática de receita das OS concluídas**. |
 | **Conversor de Unidades** | Conversão entre temperatura, pressão, comprimento, massa, volume, área, velocidade, potência, energia, vazão, tempo, torque e ângulo. |
+| **Diagnóstico de Megômetro** | Isolação puntual (60 s), **DAR** e **PI** calculados automaticamente, correção por temperatura, diagnóstico da condição da isolação (IEEE 43) e referência técnica do ensaio. |
 
 ### Pressões em psi
 Todas as pressões do app (cálculos de superaquecimento/subresfriamento, campos do relatório, PDF e tabela de gases) são tratadas em **psi**.
@@ -44,7 +45,16 @@ Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e
 As fotos (equipamentos, OS e relatórios) são adicionadas **pela galeria**. As imagens são copiadas para o armazenamento interno, têm a rotação corrigida (EXIF) e são **comprimidas** antes de salvar/exportar.
 
 ### Organização (dashboard)
-O painel principal agrupa os módulos: **Cadastros** (clientes, equipamentos, serviços), Ordens de Serviço, **Relatórios**, Agendamentos, **Ferramentas** (consulta de gases, cálculos, motores/compressores, comparar componentes, conversor de unidades, buscar manual), Gestão Financeira, Assistente IA e Configurações.
+O painel principal agrupa os módulos: **Cadastros** (clientes, equipamentos, serviços), Ordens de Serviço, **Relatórios**, Agendamentos, **Ferramentas** (consulta de gases, cálculos, motores/compressores, comparar componentes, conversor de unidades, calculadora de graxa, senhas IHM, diagnóstico de megômetro, buscar manual), Gestão Financeira, Assistente IA e Configurações.
+
+### Painel de Diagnóstico de Megômetro
+Em **Ferramentas → Diagnóstico de Megômetro** entram as leituras do megger (tensão de teste, R30s, R1min, R10min e, opcionalmente, a temperatura do equipamento) e o app calcula na hora:
+
+- **Isolação puntual (60 s)**, com correção de temperatura para a base de 40 °C ou 20 °C;
+- **DAR** = R60s ÷ R30s;
+- **PI** = R10min ÷ R1min.
+
+O diagnóstico automático classifica a condição em **Excelente, Bom, Duvidoso, Pobre ou Perigoso** pelas faixas da **IEEE 43** (PI < 1,0 perigoso; 1,0–2,0 pobre; 2,0–4,0 bom; > 4,0 excelente / DAR < 1,25 inadequado; 1,25–1,6 aceitável; > 1,6 excelente), avisa quando a resistência cai durante o ensaio e quando o valor fica abaixo do mínimo de referência (kV + 1) MΩ. A tela traz ainda três abas de referência técnica: **passo a passo** dos ensaios (puntual, DAR e PI), **defeitos comuns e causas** e **fatores de correção de temperatura**.
 
 ### Tipos de relatório
 Ao criar um relatório, escolhe-se entre três tipos:

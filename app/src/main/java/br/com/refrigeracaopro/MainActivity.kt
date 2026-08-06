@@ -33,6 +33,7 @@ import br.com.refrigeracaopro.ui.screens.DashboardScreen
 import br.com.refrigeracaopro.ui.screens.FerramentasScreen
 import br.com.refrigeracaopro.ui.screens.GestaoScreen
 import br.com.refrigeracaopro.ui.screens.ManuaisScreen
+import br.com.refrigeracaopro.ui.screens.MegohmetroScreen
 import br.com.refrigeracaopro.ui.screens.MarcasCompressoresScreen
 import br.com.refrigeracaopro.ui.screens.EquipamentoFormScreen
 import br.com.refrigeracaopro.ui.screens.EquipamentosScreen
@@ -153,6 +154,7 @@ class MainActivity : ComponentActivity() {
                         composable("gestao") { GestaoScreen(nav) }
                         composable("conversor") { ConversorScreen(nav) }
                         composable("graxa") { CalculadoraGraxaScreen(nav) }
+                        composable("megohmetro") { MegohmetroScreen(nav) }
                         composable("compressores_marcas") { MarcasCompressoresScreen(nav) }
                         composable("dados_compressores") { DadosCompressoresScreen(nav) }
                         composable("dados_ingersoll") { DadosIngersollScreen(nav) }
