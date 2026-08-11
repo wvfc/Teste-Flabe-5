@@ -33,6 +33,7 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 
 | **Gestão Financeira** | Receitas e despesas por mês, com saldo, categorias, e **importação automática de receita das OS concluídas**. |
 | **Conversor de Unidades** | Conversão entre temperatura, pressão, comprimento, massa, volume, área, velocidade, potência, energia, vazão, tempo, torque e ângulo. |
+| **Análise de Motores (MCA)** | Ensaio estático de motores de indução: cadastro de motores, wizard de coleta em 7 blocos com rascunho automático, índices (R40, desbalanceamentos, Δθ, I/F, RIC, PI), árvore de diagnóstico, gráfico do RIC, comparação com histórico, **laudo em PDF** e exportação CSV/JSON. |
 | **Análise Termográfica** | Emissividade por material, correção do ΔT pela carga e pelo vento, checagem de emissividade e de alvo mínimo, diagnóstico de severidade (NETA/NFPA 70B), imagens térmica e visível, histórico por ponto e **laudo em PDF**. |
 | **Diagnóstico de Megômetro** | Isolação puntual (60 s), **DAR** e **PI** calculados automaticamente, correção por temperatura, diagnóstico da condição da isolação (IEEE 43), **histórico por cliente/equipamento** com tendência e **relatório em PDF**. |
 
@@ -62,6 +63,28 @@ Cada ensaio pode ser **vinculado a um cliente e a um equipamento** e salvo no hi
 
 #### Gerar relatório
 O botão **Gerar relatório** salva o ensaio (se ainda não estiver salvo) e gera um **PDF** com cabeçalho da empresa, dados do cliente e do equipamento, leituras, resultados, diagnóstico, o histórico com a tendência, os critérios da IEEE 43 e os avisos de segurança — pronto para compartilhar com o cliente.
+
+### Análise de Motores (MCA)
+Em **Ferramentas → Análise de Motores (MCA)**. Ensaio estático de motores de indução trifásicos: o técnico mede em campo com ponte LCR portátil, digita os valores e o app calcula os índices e emite o parecer. **100% offline.**
+
+**Cadastro de motores** com tag única, vínculo opcional a cliente e equipamento já cadastrados, dados de placa (potência, tensão, corrente, polos, rpm, frequência), classe de isolamento, tipo de ligação e acionamento. A tela do motor lista o histórico de ensaios.
+
+**Wizard de coleta em 7 blocos**, um por tela, com **rascunho salvo automaticamente** a cada campo e tela mantida ligada durante a coleta:
+0. checklist de segurança obrigatório (incluindo calibração OPEN/SHORT e aquecimento do instrumento) + técnico, temperatura da carcaça e umidade;
+1. resistência a 1 kHz — 3 repetições por par, com média, desvio e aviso de "reposicione a garra" acima de 1%;
+2. indutância e impedância em 100 Hz e 1 kHz;
+3. alta frequência (10 kHz);
+4. capacitância para terra por fase;
+5. RIC — 12 posições angulares × 3 pares, com indicador de progresso;
+6. isolação (opcional, digitada de megôhmetro externo).
+
+**Motor de cálculo** em Kotlin puro, sem Android, coberto por **36 testes unitários**: correção de R para 40 °C, desbalanceamentos, Δθ, índice I/F e spread, análise do RIC (amplitude, espalhamento e desvio da forma senoidal por mínimos quadrados) e índice de polarização. Índice sem dado obrigatório sai como **"não avaliado"**, nunca como zero.
+
+**Diagnóstico** pela árvore de 8 ramos, devolvendo todos os achados aplicáveis com severidade e evidência numérica — de alta resistência de contato a curto entre espiras, contaminação, umidade, isolação degradada e problemas de rotor (com a ressalva de que o RIC por LCR tem baixa sensibilidade a barras quebradas isoladas e a confirmação exige MCSA com o motor carregado).
+
+**Limites de alerta** configuráveis em tela própria, com os defaults do módulo; os de isolação e PI seguem a IEEE 43 e são referência — o critério final é a tendência do próprio motor.
+
+**Saídas**: tela de parecer com semáforo por índice, achados, gráfico do RIC (três curvas sobrepostas) e comparação percentual com o ensaio anterior e com o baseline; **laudo em PDF** com leituras brutas, índices versus limites, gráfico e parecer; e exportação **CSV/JSON** para consolidação.
 
 ### Análise Termográfica
 Em **Ferramentas → Análise Termográfica**. As temperaturas são **digitadas pelo técnico** a partir da leitura da câmera — o app não lê o arquivo radiométrico do equipamento.

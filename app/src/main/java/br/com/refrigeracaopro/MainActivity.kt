@@ -33,6 +33,11 @@ import br.com.refrigeracaopro.ui.screens.DashboardScreen
 import br.com.refrigeracaopro.ui.screens.FerramentasScreen
 import br.com.refrigeracaopro.ui.screens.GestaoScreen
 import br.com.refrigeracaopro.ui.screens.ManuaisScreen
+import br.com.refrigeracaopro.ui.screens.McaAjustesScreen
+import br.com.refrigeracaopro.ui.screens.McaEnsaioScreen
+import br.com.refrigeracaopro.ui.screens.McaMotorFormScreen
+import br.com.refrigeracaopro.ui.screens.McaMotoresScreen
+import br.com.refrigeracaopro.ui.screens.McaParecerScreen
 import br.com.refrigeracaopro.ui.screens.MegohmetroScreen
 import br.com.refrigeracaopro.ui.screens.MarcasCompressoresScreen
 import br.com.refrigeracaopro.ui.screens.EquipamentoFormScreen
@@ -157,6 +162,30 @@ class MainActivity : ComponentActivity() {
                         composable("graxa") { CalculadoraGraxaScreen(nav) }
                         composable("megohmetro") { MegohmetroScreen(nav) }
                         composable("termografia") { TermografiaScreen(nav) }
+
+                        composable("mca") { McaMotoresScreen(nav) }
+                        composable(
+                            "mca/motor?id={id}",
+                            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = 0L })
+                        ) { McaMotorFormScreen(nav, it.arguments?.getLong("id") ?: 0L) }
+                        composable(
+                            "mca/ensaio?motorId={motorId}&id={id}",
+                            arguments = listOf(
+                                navArgument("motorId") { type = NavType.LongType; defaultValue = 0L },
+                                navArgument("id") { type = NavType.LongType; defaultValue = 0L },
+                            )
+                        ) {
+                            McaEnsaioScreen(
+                                nav,
+                                it.arguments?.getLong("motorId") ?: 0L,
+                                it.arguments?.getLong("id") ?: 0L,
+                            )
+                        }
+                        composable(
+                            "mca/parecer?id={id}",
+                            arguments = listOf(navArgument("id") { type = NavType.LongType; defaultValue = 0L })
+                        ) { McaParecerScreen(nav, it.arguments?.getLong("id") ?: 0L) }
+                        composable("mca/ajustes") { McaAjustesScreen(nav) }
                         composable("compressores_marcas") { MarcasCompressoresScreen(nav) }
                         composable("dados_compressores") { DadosCompressoresScreen(nav) }
                         composable("dados_ingersoll") { DadosIngersollScreen(nav) }

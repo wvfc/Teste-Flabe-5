@@ -10,7 +10,10 @@ import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
 import br.com.refrigeracaopro.data.Cliente
 import br.com.refrigeracaopro.data.EnsaioIsolacao
+import br.com.refrigeracaopro.data.EnsaioMca
 import br.com.refrigeracaopro.data.Equipamento
+import br.com.refrigeracaopro.data.Mca
+import br.com.refrigeracaopro.data.Motor
 import br.com.refrigeracaopro.data.InspecaoTermografica
 import br.com.refrigeracaopro.data.Megohmetro
 import br.com.refrigeracaopro.data.Termografia
@@ -1004,6 +1007,230 @@ object PdfGenerator {
         arquivo.outputStream().use { doc.writeTo(it) }
         doc.close()
         return arquivo
+    }
+
+    /** Laudo do ensaio MCA: leituras brutas, índices, gráfico do RIC e parecer. */
+    fun gerarEnsaioMca(
+        context: Context,
+        ensaio: EnsaioMca,
+        motor: Motor?,
+        leituras: Mca.Leituras,
+        parecer: Mca.Parecer,
+        limites: Mca.LimitesMca,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+
+        b.cabecalho("ENSAIO MCA", ensaio.numero)
+
+        b.secao("Motor e ensaio")
+        b.camposDuasColunas(
+            listOf(
+                "Data/Hora" to formatoData.format(Date(ensaio.dataHora)),
+                "Técnico" to ensaio.tecnico.ifBlank { context.nomeTecnico },
+                "Tag do motor" to (motor?.tag ?: ""),
+                "Cliente" to (motor?.cliente ?: ""),
+                "Setor" to (motor?.setor ?: ""),
+                "Equipamento acionado" to (motor?.equipamentoAcionado ?: ""),
+                "Fabricante / Modelo" to listOfNotNull(
+                    motor?.fabricante?.takeIf { it.isNotBlank() },
+                    motor?.modelo?.takeIf { it.isNotBlank() },
+                ).joinToString(" / "),
+                "Nº de série" to (motor?.numeroSerie ?: ""),
+                "Potência / Tensão" to listOfNotNull(
+                    motor?.potenciaCV?.let { numero(it, 0) + " CV" },
+                    motor?.tensaoNominalV?.let { numero(it, 0) + " V" },
+                ).joinToString(" / "),
+                "Polos / RPM" to listOfNotNull(
+                    motor?.polos?.toString(),
+                    motor?.rpmNominal?.toString(),
+                ).joinToString(" / "),
+                "Classe / Ligação" to listOfNotNull(
+                    motor?.classeIsolamento?.takeIf { it.isNotBlank() },
+                    motor?.tipoLigacao?.takeIf { it.isNotBlank() },
+                ).joinToString(" / "),
+                "Acionamento" to (motor?.acionamento ?: ""),
+                "Temperatura da carcaça" to (ensaio.temperaturaCarcacaC?.let { numero(it, 1) + " °C" } ?: ""),
+                "Umidade relativa" to (ensaio.umidadeRelativa?.let { numero(it, 0) + " %" } ?: ""),
+            )
+        )
+
+        b.secao("Leituras — resistência (1 kHz)")
+        b.tabela(
+            Mca.Par.entries.flatMap { par ->
+                val leitura = leituras.resistencias[par]
+                val medidas = leitura?.repeticoes.orEmpty().mapIndexedNotNull { i, v ->
+                    v?.let { "${par.rotulo} R${i + 1}" to numero(it, 4) + " Ω" }
+                }
+                medidas + listOfNotNull(
+                    leitura?.theta?.let { "${par.rotulo} θ" to numero(it, 2) + "°" },
+                    leitura?.repeticoes?.filterNotNull()?.takeIf { it.isNotEmpty() }?.let {
+                        "${par.rotulo} média" to numero(it.average(), 4) + " Ω"
+                    },
+                    parecer.indices.r40[par]?.let { "${par.rotulo} R40" to numero(it, 4) + " Ω" },
+                )
+            }
+        )
+
+        b.secao("Leituras — indutância e impedância")
+        b.tabela(
+            Mca.Par.entries.flatMap { par ->
+                listOfNotNull(
+                    leituras.lz100Hz[par]?.l?.let { "${par.rotulo} L 100 Hz" to numero(it, 3) + " mH" },
+                    leituras.lz100Hz[par]?.z?.let { "${par.rotulo} Z 100 Hz" to numero(it, 3) + " Ω" },
+                    leituras.lz1kHz[par]?.l?.let { "${par.rotulo} L 1 kHz" to numero(it, 3) + " mH" },
+                    leituras.lz1kHz[par]?.z?.let { "${par.rotulo} Z 1 kHz" to numero(it, 3) + " Ω" },
+                    leituras.altaFrequencia[par]?.z?.let { "${par.rotulo} Z 10 kHz" to numero(it, 3) + " Ω" },
+                    leituras.altaFrequencia[par]?.theta?.let { "${par.rotulo} θ 10 kHz" to numero(it, 2) + "°" },
+                )
+            }
+        )
+
+        b.secao("Leituras — capacitância para terra (100 Hz)")
+        b.tabela(
+            Mca.Fase.entries.mapNotNull { fase ->
+                leituras.capacitanciasNf[fase]?.let { "Fase ${fase.rotulo}" to numero(it, 3) + " nF" }
+            }
+        )
+
+        if (leituras.isolacaoMOhm != null || leituras.leitura1min != null) {
+            b.secao("Leituras — isolação")
+            b.tabela(
+                listOf(
+                    "Isolação" to (leituras.isolacaoMOhm?.let { numero(it, 0) + " MΩ" } ?: ""),
+                    "Tensão de ensaio" to (leituras.tensaoEnsaioV?.let { numero(it, 0) + " V" } ?: ""),
+                    "Leitura 1 min" to (leituras.leitura1min?.let { numero(it, 0) + " MΩ" } ?: ""),
+                    "Leitura 10 min" to (leituras.leitura10min?.let { numero(it, 0) + " MΩ" } ?: ""),
+                )
+            )
+        }
+
+        b.secao("Índices calculados e limites adotados")
+        b.tabela(indicesComLimites(parecer.indices, limites))
+
+        // Gráfico do RIC desenhado direto no PDF
+        graficoRicBitmap(leituras.ric)?.let { bmp ->
+            b.secao("RIC — indutância × ângulo do eixo")
+            b.imagem(bmp)
+            bmp.recycle()
+        }
+
+        b.secao("Parecer")
+        parecer.achados.forEach { achado ->
+            b.paragrafo("[${achado.severidade}] ${achado.titulo}")
+            if (achado.evidencia.isNotBlank()) b.paragrafo("Evidência: ${achado.evidencia}")
+            b.paragrafo(achado.detalhe)
+        }
+        if (parecer.naoAvaliados.isNotEmpty()) {
+            b.paragrafo("Não avaliados: " + parecer.naoAvaliados.joinToString("; "))
+        }
+        if (ensaio.observacoes.isNotBlank()) {
+            b.secao("Observações")
+            b.paragrafo(ensaio.observacoes)
+        }
+
+        b.secao("Método e limitações")
+        b.paragrafo(
+            "Ensaio estático com ponte LCR portátil; as leituras foram digitadas pelo técnico. " +
+                "Resistências corrigidas para 40 °C por R40 = Rt × (234,5 + 40) / (234,5 + t).\n" +
+                "Os limites de isolação e PI seguem a IEEE 43 e são referência — o critério final é a " +
+                "tendência histórica do próprio motor.\n" +
+                "O RIC por ponte LCR tem baixa sensibilidade a uma ou duas barras quebradas isoladas; " +
+                "a confirmação exige MCSA com o motor carregado."
+        )
+
+        b.assinaturas(
+            listOf(
+                (ensaio.tecnico.ifBlank { context.nomeTecnico.ifBlank { "Técnico" } } +
+                    context.registroTecnico.let { if (it.isNotBlank()) " — $it" else "" }) to "",
+            )
+        )
+
+        b.fecharPagina()
+        val nome = ensaio.numero.ifBlank { "ensaio-mca-${ensaio.id}" }
+        val arquivo = File(Arquivos.pastaPdfs(context), "$nome.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    private fun indicesComLimites(indices: Mca.Indices, limites: Mca.LimitesMca): List<Pair<String, String>> {
+        fun linha(nome: String, valor: Double?, atencao: Double, critico: Double, unidade: String, acima: Boolean = true):
+            Pair<String, String> {
+            val severidade = if (acima) Mca.severidadeAcima(valor, atencao, critico)
+            else Mca.severidadeAbaixo(valor, atencao, critico)
+            return nome to if (valor == null) "não avaliado" else
+                "${numero(valor, 2)} $unidade  [$severidade]  " +
+                    (if (acima) "atenção ≥ ${numero(atencao, 2)} / crítico ≥ ${numero(critico, 2)}"
+                    else "atenção ≤ ${numero(atencao, 2)} / crítico ≤ ${numero(critico, 2)}")
+        }
+        return listOf(
+            linha("Desbalanceamento R40 (%)", indices.desbalR40, limites.desbalR40Atencao, limites.desbalR40Critico, "%"),
+            linha("Desbalanceamento L 1 kHz (%)", indices.desbalL1k, limites.desbalLAtencao, limites.desbalLCritico, "%"),
+            linha("Desbalanceamento Z 1 kHz (%)", indices.desbalZ1k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
+            linha("Desbalanceamento Z 10 kHz (%)", indices.desbalZ10k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
+            linha("Delta θ 1 kHz (°)", indices.deltaTheta1k, limites.deltaThetaAtencao, limites.deltaThetaCritico, "°"),
+            linha("Delta θ 10 kHz (°)", indices.deltaTheta10k, limites.deltaThetaAtencao, limites.deltaThetaCritico, "°"),
+            linha("Spread I/F (p.p.)", indices.spreadIf, limites.spreadIfAtencao, limites.spreadIfCritico, "p.p."),
+            linha("Desbalanceamento C p/ terra (%)", indices.desbalCapacitancia, limites.desbalCAtencao, limites.desbalCCritico, "%"),
+            linha("Espalhamento amplitude RIC (%)", indices.ric?.espalhamentoPercentual, limites.ricAmplitudeAtencao, limites.ricAmplitudeCritico, "%"),
+            linha("Desvio senoidal RIC (%)", indices.ric?.desvioSenoidalPercentual, limites.ricSenoideAtencao, limites.ricSenoideCritico, "%"),
+            linha("Isolação (MΩ)", indices.isolacaoMOhm, limites.isolacaoAtencaoMOhm, limites.isolacaoCriticoMOhm, "MΩ", acima = false),
+            linha("Índice de polarização", indices.pi, limites.piAtencao, limites.piCritico, "", acima = false),
+        )
+    }
+
+    /** Desenha as três curvas do RIC num bitmap para embutir no laudo. */
+    private fun graficoRicBitmap(ric: Map<Mca.Par, List<Double?>>): Bitmap? {
+        val series = Mca.Par.entries.mapNotNull { par ->
+            ric[par]?.takeIf { serie -> serie.count { it != null } >= 2 }?.let { par to it }
+        }
+        if (series.isEmpty()) return null
+        val todos = series.flatMap { it.second }.filterNotNull()
+        val minimo = todos.min()
+        val maximo = todos.max()
+        val faixa = (maximo - minimo).takeIf { it > 0 } ?: 1.0
+
+        val largura = 1000
+        val altura = 460
+        val margem = 60f
+        val bmp = Bitmap.createBitmap(largura, altura, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        canvas.drawColor(Color.WHITE)
+
+        val eixo = Paint().apply { color = CINZA; strokeWidth = 2f; isAntiAlias = true }
+        val texto = Paint().apply { color = CINZA; textSize = 20f; isAntiAlias = true }
+        val larguraUtil = largura - margem * 2
+        val alturaUtil = altura - margem * 2
+        canvas.drawLine(margem, margem, margem, margem + alturaUtil, eixo)
+        canvas.drawLine(margem, margem + alturaUtil, margem + larguraUtil, margem + alturaUtil, eixo)
+        canvas.drawText("%.2f mH".format(maximo), 4f, margem + 8f, texto)
+        canvas.drawText("%.2f mH".format(minimo), 4f, margem + alturaUtil, texto)
+        canvas.drawText("0°", margem, altura - 18f, texto)
+        canvas.drawText("330°", margem + larguraUtil - 40f, altura - 18f, texto)
+
+        val cores = listOf(Color.rgb(21, 101, 192), Color.rgb(46, 125, 50), Color.rgb(239, 108, 0))
+        series.forEachIndexed { indice, (par, serie) ->
+            val cor = cores[indice % cores.size]
+            val linha = Paint().apply {
+                color = cor; strokeWidth = 4f; isAntiAlias = true; style = Paint.Style.STROKE
+            }
+            val ponto = Paint().apply { color = cor; isAntiAlias = true }
+            var anterior: Pair<Float, Float>? = null
+            serie.forEachIndexed { posicao, valor ->
+                if (valor == null) return@forEachIndexed
+                val x = margem + larguraUtil * posicao / (Mca.RIC_POSICOES - 1).toFloat()
+                val y = margem + alturaUtil - (alturaUtil * ((valor - minimo) / faixa)).toFloat()
+                anterior?.let { canvas.drawLine(it.first, it.second, x, y, linha) }
+                canvas.drawCircle(x, y, 5f, ponto)
+                anterior = x to y
+            }
+            // legenda
+            val legenda = Paint().apply { color = cor; textSize = 22f; isAntiAlias = true; isFakeBoldText = true }
+            canvas.drawText(par.rotulo, margem + 10f + indice * 90f, 30f, legenda)
+        }
+        return bmp
     }
 
     /** Número em pt-BR, sem casas desnecessárias. */

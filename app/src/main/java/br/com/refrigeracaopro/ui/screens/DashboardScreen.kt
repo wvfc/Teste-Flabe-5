@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderShared
@@ -108,6 +109,7 @@ fun FerramentasScreen(nav: NavController) {
         Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
         Modulo("Diagnóstico de Megômetro", Icons.Default.ElectricBolt, "megohmetro"),
         Modulo("Análise Termográfica", Icons.Default.Thermostat, "termografia"),
+        Modulo("Análise de Motores (MCA)", Icons.Default.ElectricalServices, "mca"),
         Modulo("Senhas IHM", Icons.Default.Password, "senhas_ihm"),
         Modulo("Buscar Manual", Icons.AutoMirrored.Filled.MenuBook, "manuais"),
     )
