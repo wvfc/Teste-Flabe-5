@@ -3,6 +3,7 @@ package br.com.refrigeracaopro.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.FolderShared
@@ -34,15 +36,23 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import br.com.refrigeracaopro.ui.components.TelaBase
 import br.com.refrigeracaopro.ui.theme.Verde
+import br.com.refrigeracaopro.util.RegistroErros
 
 data class Modulo(val titulo: String, val icone: ImageVector, val rota: String)
 
@@ -81,7 +92,50 @@ fun DashboardScreen(nav: NavController) {
             )
         }
     ) { padding ->
-        GradeModulos(modulos, nav, padding)
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            AvisoErroGuardado()
+            GradeModulos(modulos, nav, PaddingValues(0.dp))
+        }
+    }
+}
+
+/**
+ * Aviso discreto que só aparece quando o app fechou por um erro: permite
+ * enviar a pilha da falha para análise. Some assim que for descartado.
+ */
+@Composable
+private fun AvisoErroGuardado() {
+    val context = LocalContext.current
+    var visivel by remember { mutableStateOf(RegistroErros.existe(context)) }
+    if (!visivel) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFC62828).copy(alpha = 0.12f)),
+    ) {
+        Column(Modifier.padding(14.dp)) {
+            Text(
+                "O app fechou por um erro",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleSmall,
+            )
+            val resumo = RegistroErros.resumo(context)
+            if (resumo.isNotBlank()) {
+                Text(
+                    resumo,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { RegistroErros.compartilhar(context) }) { Text("Enviar relatório") }
+                TextButton(onClick = {
+                    RegistroErros.limpar(context)
+                    visivel = false
+                }) { Text("Descartar") }
+            }
+        }
     }
 }
 
@@ -105,7 +159,9 @@ fun FerramentasScreen(nav: NavController) {
         Modulo("Dados de Compressores", Icons.Default.PrecisionManufacturing, "compressores_marcas"),
         Modulo("Conversor de Unidades", Icons.Default.SwapHoriz, "conversor"),
         Modulo("Calculadora de Graxa", Icons.Default.Opacity, "graxa"),
-        Modulo("Megôhmetro", Icons.Default.ElectricBolt, "megohmetro"),
+        Modulo("Diagnóstico de Megômetro", Icons.Default.ElectricBolt, "megohmetro"),
+        Modulo("Análise Termográfica", Icons.Default.Thermostat, "termografia"),
+        Modulo("Análise de Motores (MCA)", Icons.Default.ElectricalServices, "mca"),
         Modulo("Senhas IHM", Icons.Default.Password, "senhas_ihm"),
         Modulo("Buscar Manual", Icons.AutoMirrored.Filled.MenuBook, "manuais"),
     )

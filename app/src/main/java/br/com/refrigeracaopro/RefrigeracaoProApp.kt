@@ -4,6 +4,7 @@ import android.app.Application
 import br.com.refrigeracaopro.data.AppDatabase
 import br.com.refrigeracaopro.util.AgendadorBackup
 import br.com.refrigeracaopro.util.Notificacoes
+import br.com.refrigeracaopro.util.RegistroErros
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +14,8 @@ class RefrigeracaoProApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Guarda a pilha de qualquer falha para diagnóstico em campo
+        RegistroErros.instalar(this)
         Notificacoes.criarCanal(this)
         // Inicializa o PdfBox (extração de texto de PDFs anexados à IA)
         PDFBoxResourceLoader.init(applicationContext)

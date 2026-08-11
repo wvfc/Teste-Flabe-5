@@ -20,6 +20,16 @@ object Arquivos {
     private const val LADO_MAXIMO = 2200
     private const val QUALIDADE_JPEG = 92
 
+    /**
+     * Formato das imagens de termografia: normalizadas em 1080 × 900 para que
+     * o laudo em PDF saia sempre com a mesma qualidade. A imagem é encaixada
+     * na moldura preservando a proporção — nunca esticada, porque deformar a
+     * imagem térmica falseia a leitura da escala de cores.
+     */
+    private const val TERMO_LARGURA = 1080
+    private const val TERMO_ALTURA = 900
+    private const val TERMO_QUALIDADE_JPEG = 95
+
     fun pastaFotos(context: Context): File =
         File(context.filesDir, "fotos").apply { mkdirs() }
 
@@ -43,6 +53,57 @@ object Arquivos {
         temporario.delete()
         if (ok) destino.absolutePath else null
     }.getOrNull()
+
+    /**
+     * Copia uma imagem para a análise termográfica, normalizando-a em
+     * 1080 × 900 (encaixada na moldura, sem distorcer) com qualidade JPEG
+     * mais alta — as imagens térmicas vão para o laudo em PDF e a escala de
+     * cores precisa sair limpa.
+     */
+    fun copiarImagemTermografica(context: Context, uri: Uri): String? = runCatching {
+        val temporario = File(pastaFotos(context), "tmp-${UUID.randomUUID()}.jpg")
+        context.contentResolver.openInputStream(uri)!!.use { entrada ->
+            temporario.outputStream().use { saida -> entrada.copyTo(saida) }
+        }
+        val destino = File(pastaFotos(context), "termo-${UUID.randomUUID()}.jpg")
+        val ok = normalizarTermografica(temporario, destino)
+        temporario.delete()
+        if (ok) destino.absolutePath else null
+    }.getOrNull()
+
+    /** Lê, corrige a rotação (EXIF) e grava a imagem encaixada em 1080 × 900. */
+    private fun normalizarTermografica(origem: File, destino: File): Boolean {
+        val opcoes = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(origem.absolutePath, opcoes)
+        if (opcoes.outWidth <= 0 || opcoes.outHeight <= 0) return false
+
+        var amostra = 1
+        while (opcoes.outWidth / amostra > TERMO_LARGURA * 2 && opcoes.outHeight / amostra > TERMO_ALTURA * 2) {
+            amostra *= 2
+        }
+
+        val bitmap = BitmapFactory.decodeFile(
+            origem.absolutePath,
+            BitmapFactory.Options().apply { inSampleSize = amostra }
+        ) ?: return false
+
+        val rotacionado = aplicarRotacaoExif(origem, bitmap)
+        // Encaixa na moldura preservando a proporção (escala para cima quando a
+        // imagem da câmera térmica é pequena, para manter o padrão do laudo).
+        val fator = minOf(
+            TERMO_LARGURA.toFloat() / rotacionado.width,
+            TERMO_ALTURA.toFloat() / rotacionado.height,
+        )
+        val largura = (rotacionado.width * fator).toInt().coerceAtLeast(1)
+        val altura = (rotacionado.height * fator).toInt().coerceAtLeast(1)
+        val escalado = Bitmap.createScaledBitmap(rotacionado, largura, altura, true)
+
+        destino.outputStream().use { escalado.compress(Bitmap.CompressFormat.JPEG, TERMO_QUALIDADE_JPEG, it) }
+        if (escalado != rotacionado) escalado.recycle()
+        if (rotacionado != bitmap) rotacionado.recycle()
+        bitmap.recycle()
+        return true
+    }
 
     /**
      * Comprime/redimensiona uma imagem já capturada pela câmera (no próprio

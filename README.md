@@ -33,6 +33,9 @@ serviço, relatórios, agendamentos, consultas e cálculos. A integração com I
 
 | **Gestão Financeira** | Receitas e despesas por mês, com saldo, categorias, e **importação automática de receita das OS concluídas**. |
 | **Conversor de Unidades** | Conversão entre temperatura, pressão, comprimento, massa, volume, área, velocidade, potência, energia, vazão, tempo, torque e ângulo. |
+| **Análise de Motores (MCA)** | Ensaio estático de motores de indução: cadastro de motores, wizard de coleta em 7 blocos com rascunho automático, índices (R40, desbalanceamentos, Δθ, I/F, RIC, PI), árvore de diagnóstico, gráfico do RIC, comparação com histórico, **laudo em PDF** e exportação CSV/JSON. |
+| **Análise Termográfica** | Emissividade por material, correção do ΔT pela carga e pelo vento, checagem de emissividade e de alvo mínimo, diagnóstico de severidade (NETA/NFPA 70B), imagens térmica e visível, histórico por ponto e **laudo em PDF**. |
+| **Diagnóstico de Megômetro** | Isolação puntual (60 s), **DAR** e **PI** calculados automaticamente, correção por temperatura, diagnóstico da condição da isolação (IEEE 43), **histórico por cliente/equipamento** com tendência e **relatório em PDF**. |
 
 ### Pressões em psi
 Todas as pressões do app (cálculos de superaquecimento/subresfriamento, campos do relatório, PDF e tabela de gases) são tratadas em **psi**.
@@ -44,7 +47,64 @@ Aceita **entrada de imagens** (visão — ex.: foto da plaqueta do compressor) e
 As fotos (equipamentos, OS e relatórios) são adicionadas **pela galeria**. As imagens são copiadas para o armazenamento interno, têm a rotação corrigida (EXIF) e são **comprimidas** antes de salvar/exportar.
 
 ### Organização (dashboard)
-O painel principal agrupa os módulos: **Cadastros** (clientes, equipamentos, serviços), Ordens de Serviço, **Relatórios**, Agendamentos, **Ferramentas** (consulta de gases, cálculos, motores/compressores, comparar componentes, conversor de unidades, buscar manual), Gestão Financeira, Assistente IA e Configurações.
+O painel principal agrupa os módulos: **Cadastros** (clientes, equipamentos, serviços), Ordens de Serviço, **Relatórios**, Agendamentos, **Ferramentas** (consulta de gases, cálculos, motores/compressores, comparar componentes, conversor de unidades, calculadora de graxa, senhas IHM, diagnóstico de megômetro, buscar manual), Gestão Financeira, Assistente IA e Configurações.
+
+### Painel de Diagnóstico de Megômetro
+Em **Ferramentas → Diagnóstico de Megômetro** entram as leituras do megger (tensão de teste, R30s, R1min, R10min e, opcionalmente, a temperatura do equipamento) e o app calcula na hora:
+
+- **Isolação puntual (60 s)**, com correção de temperatura para a base de 40 °C ou 20 °C;
+- **DAR** = R60s ÷ R30s;
+- **PI** = R10min ÷ R1min.
+
+O diagnóstico automático classifica a condição em **Excelente, Bom, Duvidoso, Pobre ou Perigoso** pelas faixas da **IEEE 43** (PI < 1,0 perigoso; 1,0–2,0 pobre; 2,0–4,0 bom; > 4,0 excelente / DAR < 1,25 inadequado; 1,25–1,6 aceitável; > 1,6 excelente), avisa quando a resistência cai durante o ensaio e quando o valor fica abaixo do mínimo de referência (kV + 1) MΩ. A tela traz ainda três abas de referência técnica: **passo a passo** dos ensaios (puntual, DAR e PI), **defeitos comuns e causas** e **fatores de correção de temperatura**.
+
+#### Histórico e tendência (preditiva)
+Cada ensaio pode ser **vinculado a um cliente e a um equipamento** e salvo no histórico (numeração automática `MEG-AAAA-NNNN`). A tela mostra os ensaios anteriores daquela máquina com a variação percentual entre medições e uma leitura da tendência — porque, pela IEEE 43, a **evolução** das leituras corrigidas pesa mais que o valor absoluto de um ensaio isolado. Quedas acima de 40% viram alerta. Tocar em um ensaio do histórico recarrega as leituras na tela.
+
+#### Gerar relatório
+O botão **Gerar relatório** salva o ensaio (se ainda não estiver salvo) e gera um **PDF** com cabeçalho da empresa, dados do cliente e do equipamento, leituras, resultados, diagnóstico, o histórico com a tendência, os critérios da IEEE 43 e os avisos de segurança — pronto para compartilhar com o cliente.
+
+### Análise de Motores (MCA)
+Em **Ferramentas → Análise de Motores (MCA)**. Ensaio estático de motores de indução trifásicos: o técnico mede em campo com ponte LCR portátil, digita os valores e o app calcula os índices e emite o parecer. **100% offline.**
+
+**Cadastro de motores** com tag única, vínculo opcional a cliente e equipamento já cadastrados, dados de placa (potência, tensão, corrente, polos, rpm, frequência), classe de isolamento, tipo de ligação e acionamento. A tela do motor lista o histórico de ensaios.
+
+**Wizard de coleta em 7 blocos**, um por tela, com **rascunho salvo automaticamente** a cada campo e tela mantida ligada durante a coleta:
+0. checklist de segurança obrigatório (incluindo calibração OPEN/SHORT e aquecimento do instrumento) + técnico, temperatura da carcaça e umidade;
+1. resistência a 1 kHz — 3 repetições por par, com média, desvio e aviso de "reposicione a garra" acima de 1%;
+2. indutância e impedância em 100 Hz e 1 kHz;
+3. alta frequência (10 kHz);
+4. capacitância para terra por fase;
+5. RIC — 12 posições angulares × 3 pares, com indicador de progresso;
+6. isolação (opcional, digitada de megôhmetro externo).
+
+**Motor de cálculo** em Kotlin puro, sem Android, coberto por **36 testes unitários**: correção de R para 40 °C, desbalanceamentos, Δθ, índice I/F e spread, análise do RIC (amplitude, espalhamento e desvio da forma senoidal por mínimos quadrados) e índice de polarização. Índice sem dado obrigatório sai como **"não avaliado"**, nunca como zero.
+
+**Diagnóstico** pela árvore de 8 ramos, devolvendo todos os achados aplicáveis com severidade e evidência numérica — de alta resistência de contato a curto entre espiras, contaminação, umidade, isolação degradada e problemas de rotor (com a ressalva de que o RIC por LCR tem baixa sensibilidade a barras quebradas isoladas e a confirmação exige MCSA com o motor carregado).
+
+**Limites de alerta** configuráveis em tela própria, com os defaults do módulo; os de isolação e PI seguem a IEEE 43 e são referência — o critério final é a tendência do próprio motor.
+
+**Saídas**: tela de parecer com semáforo por índice, achados, gráfico do RIC (três curvas sobrepostas) e comparação percentual com o ensaio anterior e com o baseline; **laudo em PDF** com leituras brutas, índices versus limites, gráfico e parecer; e exportação **CSV/JSON** para consolidação.
+
+### Análise Termográfica
+Em **Ferramentas → Análise Termográfica**. As temperaturas são **digitadas pelo técnico** a partir da leitura da câmera — o app não lê o arquivo radiométrico do equipamento.
+
+**Entrada:** cliente, equipamento e ponto inspecionado (texto livre); condições do ensaio (material da superfície, que preenche a emissividade automaticamente, ε usado na câmera, temperatura refletida, ambiente, umidade, distância, relação D:S, ângulo, local interno/externo e vento); carga no momento da medição (corrente medida e nominal) e classe de isolamento; temperaturas do ponto quente e do componente similar.
+
+**Cálculos:**
+- ΔT sobre componente similar e ΔT sobre o ambiente;
+- **projeção para a carga nominal** — `ΔT × (I_nominal ÷ I_medida)²`, já que o aquecimento por efeito Joule cresce com o quadrado da corrente (medir com a máquina aliviada subestima a anomalia);
+- correção por vento em medição externa;
+- reestimativa da temperatura quando a câmera estava com a emissividade errada (aproximada — ignora transmissão atmosférica);
+- menor alvo mensurável a partir da relação D:S e da distância.
+
+**Diagnóstico automático** em cinco níveis (Normal, Possível deficiência, Deficiência provável, Discrepância grave, Crítico) pelas faixas NETA MTS / NFPA 70B, com ação recomendada e avisos sobre carga insuficiente, emissividade baixa, ângulo aberto, temperatura refletida ausente e limite da classe de isolamento.
+
+**Fotos:** imagens térmicas e fotos visíveis do mesmo ponto, cada uma com legenda, normalizadas em **1080 × 900** (encaixadas na moldura, sem distorcer) para o laudo sair sempre com a mesma qualidade.
+
+**Referência técnica em quatro abas:** como medir (passo a passo, inclusive o método do papel-alumínio para a temperatura refletida), erros comuns, emissividade por material (metais, elétrico/industrial, construção e diversos) e o que inspecionar em cada equipamento.
+
+**Histórico e laudo:** as inspeções ficam guardadas por cliente/equipamento (`TR-AAAA-NNNN`), com destaque para a evolução do ΔT do mesmo ponto, e o botão **Gerar relatório** emite o PDF com condições, cálculos, diagnóstico, imagens pareadas, histórico e critérios.
 
 ### Tipos de relatório
 Ao criar um relatório, escolhe-se entre três tipos:

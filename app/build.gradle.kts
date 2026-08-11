@@ -109,4 +109,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // Testes unitários do motor de cálculo do MCA (JVM, sem device)
+    testImplementation("junit:junit:4.13.2")
 }

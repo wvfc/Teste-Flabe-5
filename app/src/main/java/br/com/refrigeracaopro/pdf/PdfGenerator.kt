@@ -9,7 +9,14 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.pdf.PdfDocument
 import br.com.refrigeracaopro.data.Cliente
+import br.com.refrigeracaopro.data.EnsaioIsolacao
+import br.com.refrigeracaopro.data.EnsaioMca
 import br.com.refrigeracaopro.data.Equipamento
+import br.com.refrigeracaopro.data.Mca
+import br.com.refrigeracaopro.data.Motor
+import br.com.refrigeracaopro.data.InspecaoTermografica
+import br.com.refrigeracaopro.data.Megohmetro
+import br.com.refrigeracaopro.data.Termografia
 import br.com.refrigeracaopro.data.OrdemServico
 import br.com.refrigeracaopro.data.Relatorio
 import br.com.refrigeracaopro.data.Prefs.cnpjEmpresa
@@ -688,6 +695,535 @@ object PdfGenerator {
         arquivo.outputStream().use { doc.writeTo(it) }
         doc.close()
         return arquivo
+    }
+
+    /**
+     * Gera o PDF do ensaio de isolação (megômetro), incluindo o histórico do
+     * equipamento para leitura da tendência.
+     *
+     * [historico] deve vir do mais recente para o mais antigo, já contendo o
+     * ensaio atual.
+     */
+    fun gerarEnsaioIsolacao(
+        context: Context,
+        ensaio: EnsaioIsolacao,
+        cliente: Cliente?,
+        equipamento: Equipamento?,
+        resultado: Megohmetro.Resultado,
+        historico: List<EnsaioIsolacao>,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+
+        b.cabecalho("ENSAIO DE ISOLAÇÃO", ensaio.numero)
+
+        b.secao("Dados gerais")
+        b.camposDuasColunas(
+            listOf(
+                "Data/Hora" to formatoData.format(Date(ensaio.dataHora)),
+                "Técnico" to context.nomeTecnico,
+                "Registro profissional" to context.registroTecnico,
+                "Instrumento" to "Megômetro (megger)",
+            )
+        )
+
+        b.secao("Cliente")
+        b.camposDuasColunas(dadosCliente(cliente))
+
+        if (equipamento != null) {
+            b.secao("Equipamento")
+            b.camposDuasColunas(dadosEquipamento(equipamento))
+        }
+
+        b.secao("Leituras do ensaio")
+        b.tabela(
+            listOf(
+                "Tensão de teste aplicada" to numero(ensaio.tensaoV, 0).comUnidade("V"),
+                "Leitura de 30 segundos (R30s)" to numero(ensaio.r30s).comUnidade("MΩ"),
+                "Leitura de 1 minuto (R60s)" to numero(ensaio.r60s).comUnidade("MΩ"),
+                "Leitura de 10 minutos (R10min)" to numero(ensaio.r10min).comUnidade("MΩ"),
+                "Temperatura do equipamento" to (ensaio.tempC?.let { numero(it, 1) + " °C" } ?: "Não informada"),
+                "Temperatura base de correção" to "${numero(ensaio.tempBase, 0)} °C",
+            )
+        )
+
+        b.secao("Resultados")
+        b.tabela(
+            listOf(
+                "Isolação puntual (60 s)" to (resultado.puntual?.let { numero(it) + " MΩ" } ?: ""),
+                "Isolação corrigida para ${numero(ensaio.tempBase, 0)} °C" to
+                    (resultado.puntualCorrigido?.let { numero(it) + " MΩ" } ?: ""),
+                "Fator de correção aplicado" to (resultado.fatorTemperatura?.let { "× " + numero(it, 2) } ?: ""),
+                "Índice de Absorção (DAR = R60s ÷ R30s)" to
+                    (resultado.dar?.let { numero(it, 2) + "  —  " + resultado.classeDar } ?: ""),
+                "Índice de Polarização (PI = R10min ÷ R1min)" to
+                    (resultado.pi?.let { numero(it, 2) + "  —  " + resultado.classePi } ?: ""),
+                "Mínimo de referência (kV + 1)" to (resultado.minimoRecomendado?.let {
+                    numero(it, 1) + " MΩ  —  " + when (resultado.atendeMinimo) {
+                        true -> "atendido"
+                        false -> "NÃO atendido"
+                        else -> "-"
+                    }
+                } ?: ""),
+            )
+        )
+
+        resultado.condicao?.let { condicao ->
+            b.secao("Diagnóstico — condição: ${condicao.rotulo.uppercase()}")
+            b.paragrafo(resultado.diagnostico)
+            if (resultado.recomendacao.isNotBlank()) b.paragrafo("Recomendação: ${resultado.recomendacao}")
+            if (resultado.avisos.isNotEmpty()) {
+                b.paragrafo(resultado.avisos.joinToString("\n") { "• $it" })
+            }
+        }
+
+        if (ensaio.observacoes.isNotBlank()) {
+            b.secao("Observações")
+            b.paragrafo(ensaio.observacoes)
+        }
+
+        // Histórico do equipamento: base da análise de tendência
+        if (historico.size > 1) {
+            b.secao("Histórico e tendência")
+            val formatoDia = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+            b.tabela(
+                historico.map { e ->
+                    val valor = e.puntualCorrigido ?: e.r60s
+                    val indices = listOfNotNull(
+                        e.pi?.let { "PI " + numero(it, 2) },
+                        e.dar?.let { "DAR " + numero(it, 2) },
+                        e.condicao.takeIf { it.isNotBlank() },
+                    ).joinToString(" • ")
+                    "${formatoDia.format(Date(e.dataHora))} — ${numero(valor)} MΩ" to indices
+                }
+            )
+            val pontos = historico.sortedBy { it.dataHora }
+                .map { Megohmetro.Ponto(it.dataHora, it.puntualCorrigido ?: it.r60s) }
+            Megohmetro.tendencia(pontos)?.let { b.paragrafo(it.texto) }
+            b.paragrafo(
+                "Observação: pela IEEE 43 a tendência das leituras corrigidas pesa mais que o " +
+                    "valor absoluto de um ensaio isolado."
+            )
+        }
+
+        b.secao("Critérios de avaliação (IEEE 43)")
+        b.tabela(
+            listOf(
+                "PI menor que 1,0" to "Perigoso",
+                "PI de 1,0 a 2,0" to "Pobre",
+                "PI de 2,0 a 4,0" to "Bom",
+                "PI acima de 4,0" to "Excelente",
+                "DAR menor que 1,25" to "Inadequado",
+                "DAR de 1,25 a 1,6" to "Aceitável",
+                "DAR acima de 1,6" to "Excelente",
+            )
+        )
+        b.paragrafo(Megohmetro.CORRECAO_FORMULA + " — a resistência de isolamento cai pela metade a cada 10 °C de aumento de temperatura.")
+
+        b.secao("Avisos técnicos e de segurança")
+        b.paragrafo(
+            (Megohmetro.PASSO_A_PASSO_GERAL.joinToString("\n") { "• $it" }) + "\n" +
+                "• " + br.com.refrigeracaopro.data.Avisos.CALCULO_AUXILIAR
+        )
+
+        b.assinaturas(
+            listOf(
+                (context.nomeTecnico.ifBlank { "Técnico" } +
+                    context.registroTecnico.let { if (it.isNotBlank()) " — $it" else "" }) to "",
+            )
+        )
+
+        b.fecharPagina()
+        val nome = ensaio.numero.ifBlank { "ensaio-isolacao-${ensaio.id}" }
+        val arquivo = File(Arquivos.pastaPdfs(context), "$nome.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    /**
+     * Gera o laudo termográfico em PDF, com as condições do ensaio, os
+     * cálculos, o diagnóstico, as imagens térmica e visível e o histórico do
+     * ponto inspecionado.
+     *
+     * [historico] deve vir do mais recente para o mais antigo, já contendo a
+     * inspeção atual.
+     */
+    fun gerarInspecaoTermografica(
+        context: Context,
+        inspecao: InspecaoTermografica,
+        cliente: Cliente?,
+        equipamento: Equipamento?,
+        resultado: Termografia.Resultado,
+        historico: List<InspecaoTermografica>,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+
+        b.cabecalho("LAUDO TERMOGRÁFICO", inspecao.numero)
+
+        b.secao("Dados gerais")
+        b.camposDuasColunas(
+            listOf(
+                "Data/Hora" to formatoData.format(Date(inspecao.dataHora)),
+                "Técnico" to context.nomeTecnico,
+                "Registro profissional" to context.registroTecnico,
+                "Ponto inspecionado" to inspecao.ponto,
+            )
+        )
+
+        b.secao("Cliente")
+        b.camposDuasColunas(dadosCliente(cliente))
+
+        if (equipamento != null) {
+            b.secao("Equipamento")
+            b.camposDuasColunas(dadosEquipamento(equipamento))
+        }
+
+        b.secao("Condições do ensaio")
+        b.tabela(
+            listOf(
+                "Material da superfície" to inspecao.material,
+                "Emissividade adotada (ε)" to numero(inspecao.emissividade, 2),
+                "Emissividade usada na câmera" to (inspecao.emissividadeCamera?.let { numero(it, 2) } ?: ""),
+                "Temperatura refletida" to (inspecao.tempRefletida?.let { numero(it, 1) + " °C" } ?: "Não informada"),
+                "Temperatura ambiente" to (inspecao.tempAmbiente?.let { numero(it, 1) + " °C" } ?: ""),
+                "Umidade relativa" to (inspecao.umidade?.let { numero(it, 0) + " %" } ?: ""),
+                "Distância até o alvo" to (inspecao.distanciaM?.let { numero(it, 1) + " m" } ?: ""),
+                "Relação D:S da câmera" to (inspecao.relacaoDS?.let { "1:" + numero(it, 0) } ?: ""),
+                "Ângulo de visada" to (inspecao.anguloGraus?.let { numero(it, 0) + "°" } ?: ""),
+                "Local da medição" to if (inspecao.externo) "Externo" else "Interno",
+                "Velocidade do vento" to (inspecao.ventoMs?.let { numero(it, 1) + " m/s" } ?: ""),
+            )
+        )
+
+        b.secao("Carga e temperaturas medidas")
+        b.tabela(
+            listOf(
+                "Corrente medida" to (inspecao.correnteMedida?.let { numero(it, 1) + " A" } ?: ""),
+                "Corrente nominal" to (inspecao.correnteNominal?.let { numero(it, 1) + " A" } ?: ""),
+                "Carga no momento da medição" to (resultado.percentualCarga?.let { numero(it, 0) + " % da nominal" } ?: ""),
+                "Classe de isolamento" to inspecao.classeIsolamento.takeIf { it != "—" }.orEmpty(),
+                "Temperatura do ponto quente" to (inspecao.tempPonto?.let { numero(it, 1) + " °C" } ?: ""),
+                "Temperatura do componente similar" to (inspecao.tempSimilar?.let { numero(it, 1) + " °C" } ?: ""),
+            )
+        )
+
+        b.secao("Resultados")
+        b.tabela(
+            listOf(
+                "ΔT sobre componente similar" to (resultado.deltaTSimilar?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT sobre o ambiente" to (resultado.deltaTAmbiente?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT projetado para a carga nominal" to (resultado.deltaTCorrigidoCarga?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT corrigido pelo vento" to (resultado.deltaTCorrigidoVento?.let { numero(it, 1) + " °C" } ?: ""),
+                "ΔT considerado na avaliação" to (resultado.deltaTAvaliado?.let { numero(it, 1) + " °C" } ?: ""),
+                "Temperatura reestimada pela emissividade" to
+                    (resultado.temperaturaCorrigidaEmissividade?.let { numero(it, 1) + " °C (aproximada)" } ?: ""),
+                "Menor alvo mensurável na distância" to (resultado.menorAlvoMm?.let { numero(it, 0) + " mm" } ?: ""),
+                "Margem até o limite da classe" to (resultado.margemClasse?.let { numero(it, 0) + " °C" } ?: ""),
+            )
+        )
+
+        resultado.severidade?.let { severidade ->
+            b.secao("Diagnóstico — ${severidade.rotulo.uppercase()}")
+            b.paragrafo(resultado.diagnostico)
+            b.paragrafo("Ação recomendada: ${resultado.recomendacao}")
+            if (resultado.avisos.isNotEmpty()) {
+                b.paragrafo(resultado.avisos.joinToString("\n") { "• $it" })
+            }
+        }
+
+        if (inspecao.observacoes.isNotBlank()) {
+            b.secao("Observações")
+            b.paragrafo(inspecao.observacoes)
+        }
+
+        // Imagens térmica e visível, cada uma com sua legenda
+        val legendas = Termografia.decodificarLegendas(inspecao.legendasFotos)
+        val termicas = Arquivos.textoParaLista(inspecao.fotosTermicas).map { it to legendas[it].orEmpty() }
+        val visiveis = Arquivos.textoParaLista(inspecao.fotosVisiveis).map { it to legendas[it].orEmpty() }
+        b.fotosComLegenda("Imagens térmicas", termicas)
+        b.fotosComLegenda("Fotos visíveis", visiveis)
+
+        // Histórico do mesmo ponto: é o que mostra a evolução da anomalia
+        val doPonto = historico.filter {
+            inspecao.ponto.isNotBlank() && it.ponto.equals(inspecao.ponto, ignoreCase = true)
+        }
+        if (doPonto.size > 1) {
+            b.secao("Histórico do ponto")
+            val formatoDia = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR"))
+            b.tabela(
+                doPonto.map { i ->
+                    val dados = listOfNotNull(
+                        i.tempPonto?.let { numero(it, 1) + " °C" },
+                        i.deltaTCorrigido?.let { "ΔT " + numero(it, 1) + " °C" },
+                        i.severidade.takeIf { it.isNotBlank() },
+                    ).joinToString(" • ")
+                    formatoDia.format(Date(i.dataHora)) to dados
+                }
+            )
+            val recente = doPonto.first().deltaTCorrigido ?: doPonto.first().deltaTSimilar
+            val antigo = doPonto.last().deltaTCorrigido ?: doPonto.last().deltaTSimilar
+            if (recente != null && antigo != null) {
+                val variacao = recente - antigo
+                b.paragrafo(
+                    if (variacao > 0)
+                        "O ΔT deste ponto subiu ${numero(variacao, 1)} °C desde a primeira inspeção " +
+                            "(${numero(antigo, 1)} °C → ${numero(recente, 1)} °C)."
+                    else
+                        "O ΔT deste ponto caiu ${numero(-variacao, 1)} °C desde a primeira inspeção " +
+                            "(${numero(antigo, 1)} °C → ${numero(recente, 1)} °C)."
+                )
+            }
+        }
+
+        b.secao("Critérios de avaliação (NETA MTS / NFPA 70B)")
+        b.tabela(
+            Termografia.CRITERIOS.map { (similar, ambiente, classificacao) ->
+                "ΔT similar $similar  |  ΔT ambiente $ambiente" to classificacao
+            }
+        )
+
+        b.secao("Método e limitações")
+        b.paragrafo(
+            "As temperaturas deste laudo foram lidas na câmera termográfica e digitadas pelo " +
+                "técnico responsável. O ΔT é projetado para a corrente nominal pela relação " +
+                "ΔT × (I_nominal ÷ I_medida)², válida para aquecimento por efeito Joule.\n" +
+                "• " + br.com.refrigeracaopro.data.Avisos.CALCULO_AUXILIAR
+        )
+
+        b.assinaturas(
+            listOf(
+                (context.nomeTecnico.ifBlank { "Técnico" } +
+                    context.registroTecnico.let { if (it.isNotBlank()) " — $it" else "" }) to "",
+            )
+        )
+
+        b.fecharPagina()
+        val nome = inspecao.numero.ifBlank { "termografia-${inspecao.id}" }
+        val arquivo = File(Arquivos.pastaPdfs(context), "$nome.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    /** Laudo do ensaio MCA: leituras brutas, índices, gráfico do RIC e parecer. */
+    fun gerarEnsaioMca(
+        context: Context,
+        ensaio: EnsaioMca,
+        motor: Motor?,
+        leituras: Mca.Leituras,
+        parecer: Mca.Parecer,
+        limites: Mca.LimitesMca,
+    ): File {
+        val doc = PdfDocument()
+        val rodape = "Gerado por Gestão Pro em ${formatoData.format(Date())}"
+        val b = Construtor(context, doc, rodape)
+
+        b.cabecalho("ENSAIO MCA", ensaio.numero)
+
+        b.secao("Motor e ensaio")
+        b.camposDuasColunas(
+            listOf(
+                "Data/Hora" to formatoData.format(Date(ensaio.dataHora)),
+                "Técnico" to ensaio.tecnico.ifBlank { context.nomeTecnico },
+                "Tag do motor" to (motor?.tag ?: ""),
+                "Cliente" to (motor?.cliente ?: ""),
+                "Setor" to (motor?.setor ?: ""),
+                "Equipamento acionado" to (motor?.equipamentoAcionado ?: ""),
+                "Fabricante / Modelo" to listOfNotNull(
+                    motor?.fabricante?.takeIf { it.isNotBlank() },
+                    motor?.modelo?.takeIf { it.isNotBlank() },
+                ).joinToString(" / "),
+                "Nº de série" to (motor?.numeroSerie ?: ""),
+                "Potência / Tensão" to listOfNotNull(
+                    motor?.potenciaCV?.let { numero(it, 0) + " CV" },
+                    motor?.tensaoNominalV?.let { numero(it, 0) + " V" },
+                ).joinToString(" / "),
+                "Polos / RPM" to listOfNotNull(
+                    motor?.polos?.toString(),
+                    motor?.rpmNominal?.toString(),
+                ).joinToString(" / "),
+                "Classe / Ligação" to listOfNotNull(
+                    motor?.classeIsolamento?.takeIf { it.isNotBlank() },
+                    motor?.tipoLigacao?.takeIf { it.isNotBlank() },
+                ).joinToString(" / "),
+                "Acionamento" to (motor?.acionamento ?: ""),
+                "Temperatura da carcaça" to (ensaio.temperaturaCarcacaC?.let { numero(it, 1) + " °C" } ?: ""),
+                "Umidade relativa" to (ensaio.umidadeRelativa?.let { numero(it, 0) + " %" } ?: ""),
+            )
+        )
+
+        b.secao("Leituras — resistência (1 kHz)")
+        b.tabela(
+            Mca.Par.entries.flatMap { par ->
+                val leitura = leituras.resistencias[par]
+                val medidas = leitura?.repeticoes.orEmpty().mapIndexedNotNull { i, v ->
+                    v?.let { "${par.rotulo} R${i + 1}" to numero(it, 4) + " Ω" }
+                }
+                medidas + listOfNotNull(
+                    leitura?.theta?.let { "${par.rotulo} θ" to numero(it, 2) + "°" },
+                    leitura?.repeticoes?.filterNotNull()?.takeIf { it.isNotEmpty() }?.let {
+                        "${par.rotulo} média" to numero(it.average(), 4) + " Ω"
+                    },
+                    parecer.indices.r40[par]?.let { "${par.rotulo} R40" to numero(it, 4) + " Ω" },
+                )
+            }
+        )
+
+        b.secao("Leituras — indutância e impedância")
+        b.tabela(
+            Mca.Par.entries.flatMap { par ->
+                listOfNotNull(
+                    leituras.lz100Hz[par]?.l?.let { "${par.rotulo} L 100 Hz" to numero(it, 3) + " mH" },
+                    leituras.lz100Hz[par]?.z?.let { "${par.rotulo} Z 100 Hz" to numero(it, 3) + " Ω" },
+                    leituras.lz1kHz[par]?.l?.let { "${par.rotulo} L 1 kHz" to numero(it, 3) + " mH" },
+                    leituras.lz1kHz[par]?.z?.let { "${par.rotulo} Z 1 kHz" to numero(it, 3) + " Ω" },
+                    leituras.altaFrequencia[par]?.z?.let { "${par.rotulo} Z 10 kHz" to numero(it, 3) + " Ω" },
+                    leituras.altaFrequencia[par]?.theta?.let { "${par.rotulo} θ 10 kHz" to numero(it, 2) + "°" },
+                )
+            }
+        )
+
+        b.secao("Leituras — capacitância para terra (100 Hz)")
+        b.tabela(
+            Mca.Fase.entries.mapNotNull { fase ->
+                leituras.capacitanciasNf[fase]?.let { "Fase ${fase.rotulo}" to numero(it, 3) + " nF" }
+            }
+        )
+
+        if (leituras.isolacaoMOhm != null || leituras.leitura1min != null) {
+            b.secao("Leituras — isolação")
+            b.tabela(
+                listOf(
+                    "Isolação" to (leituras.isolacaoMOhm?.let { numero(it, 0) + " MΩ" } ?: ""),
+                    "Tensão de ensaio" to (leituras.tensaoEnsaioV?.let { numero(it, 0) + " V" } ?: ""),
+                    "Leitura 1 min" to (leituras.leitura1min?.let { numero(it, 0) + " MΩ" } ?: ""),
+                    "Leitura 10 min" to (leituras.leitura10min?.let { numero(it, 0) + " MΩ" } ?: ""),
+                )
+            )
+        }
+
+        b.secao("Índices calculados e limites adotados")
+        b.tabela(indicesComLimites(parecer.indices, limites))
+
+        // Gráfico do RIC desenhado direto no PDF
+        graficoRicBitmap(leituras.ric)?.let { bmp ->
+            b.secao("RIC — indutância × ângulo do eixo")
+            b.imagem(bmp)
+            bmp.recycle()
+        }
+
+        b.secao("Parecer")
+        parecer.achados.forEach { achado ->
+            b.paragrafo("[${achado.severidade}] ${achado.titulo}")
+            if (achado.evidencia.isNotBlank()) b.paragrafo("Evidência: ${achado.evidencia}")
+            b.paragrafo(achado.detalhe)
+        }
+        if (parecer.naoAvaliados.isNotEmpty()) {
+            b.paragrafo("Não avaliados: " + parecer.naoAvaliados.joinToString("; "))
+        }
+        if (ensaio.observacoes.isNotBlank()) {
+            b.secao("Observações")
+            b.paragrafo(ensaio.observacoes)
+        }
+
+        b.secao("Método e limitações")
+        b.paragrafo(
+            "Ensaio estático com ponte LCR portátil; as leituras foram digitadas pelo técnico. " +
+                "Resistências corrigidas para 40 °C por R40 = Rt × (234,5 + 40) / (234,5 + t).\n" +
+                "Os limites de isolação e PI seguem a IEEE 43 e são referência — o critério final é a " +
+                "tendência histórica do próprio motor.\n" +
+                "O RIC por ponte LCR tem baixa sensibilidade a uma ou duas barras quebradas isoladas; " +
+                "a confirmação exige MCSA com o motor carregado."
+        )
+
+        b.assinaturas(
+            listOf(
+                (ensaio.tecnico.ifBlank { context.nomeTecnico.ifBlank { "Técnico" } } +
+                    context.registroTecnico.let { if (it.isNotBlank()) " — $it" else "" }) to "",
+            )
+        )
+
+        b.fecharPagina()
+        val nome = ensaio.numero.ifBlank { "ensaio-mca-${ensaio.id}" }
+        val arquivo = File(Arquivos.pastaPdfs(context), "$nome.pdf")
+        arquivo.outputStream().use { doc.writeTo(it) }
+        doc.close()
+        return arquivo
+    }
+
+    /** Usa a mesma tabela de índices × limites da tela de parecer. */
+    private fun indicesComLimites(indices: Mca.Indices, limites: Mca.LimitesMca): List<Pair<String, String>> =
+        Mca.semaforo(indices, limites).map { linha ->
+            val nome = if (linha.unidade.isBlank()) linha.nome else "${linha.nome} (${linha.unidade})"
+            nome to if (linha.valor == null) Mca.NAO_AVALIADO
+            else "${linha.valorTexto}  [${linha.severidade}]  ${linha.limiteTexto}"
+        }
+
+    /** Desenha as três curvas do RIC num bitmap para embutir no laudo. */
+    private fun graficoRicBitmap(ric: Map<Mca.Par, List<Double?>>): Bitmap? {
+        val series = Mca.Par.entries.mapNotNull { par ->
+            ric[par]?.takeIf { serie -> serie.count { it != null } >= 2 }?.let { par to it }
+        }
+        if (series.isEmpty()) return null
+        val todos = series.flatMap { it.second }.filterNotNull()
+        val minimo = todos.min()
+        val maximo = todos.max()
+        val faixa = (maximo - minimo).takeIf { it > 0 } ?: 1.0
+
+        val largura = 1000
+        val altura = 460
+        val margem = 60f
+        val bmp = Bitmap.createBitmap(largura, altura, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        canvas.drawColor(Color.WHITE)
+
+        val eixo = Paint().apply { color = CINZA; strokeWidth = 2f; isAntiAlias = true }
+        val texto = Paint().apply { color = CINZA; textSize = 20f; isAntiAlias = true }
+        val larguraUtil = largura - margem * 2
+        val alturaUtil = altura - margem * 2
+        canvas.drawLine(margem, margem, margem, margem + alturaUtil, eixo)
+        canvas.drawLine(margem, margem + alturaUtil, margem + larguraUtil, margem + alturaUtil, eixo)
+        canvas.drawText("%.2f mH".format(maximo), 4f, margem + 8f, texto)
+        canvas.drawText("%.2f mH".format(minimo), 4f, margem + alturaUtil, texto)
+        canvas.drawText("0°", margem, altura - 18f, texto)
+        canvas.drawText("330°", margem + larguraUtil - 40f, altura - 18f, texto)
+
+        val cores = listOf(Color.rgb(21, 101, 192), Color.rgb(46, 125, 50), Color.rgb(239, 108, 0))
+        series.forEachIndexed { indice, (par, serie) ->
+            val cor = cores[indice % cores.size]
+            val linha = Paint().apply {
+                color = cor; strokeWidth = 4f; isAntiAlias = true; style = Paint.Style.STROKE
+            }
+            val ponto = Paint().apply { color = cor; isAntiAlias = true }
+            var anterior: Pair<Float, Float>? = null
+            serie.forEachIndexed { posicao, valor ->
+                if (valor == null) return@forEachIndexed
+                val x = margem + larguraUtil * posicao / (Mca.RIC_POSICOES - 1).toFloat()
+                val y = margem + alturaUtil - (alturaUtil * ((valor - minimo) / faixa)).toFloat()
+                anterior?.let { canvas.drawLine(it.first, it.second, x, y, linha) }
+                canvas.drawCircle(x, y, 5f, ponto)
+                anterior = x to y
+            }
+            // legenda
+            val legenda = Paint().apply { color = cor; textSize = 22f; isAntiAlias = true; isFakeBoldText = true }
+            canvas.drawText(par.rotulo, margem + 10f + indice * 90f, 30f, legenda)
+        }
+        return bmp
+    }
+
+    /** Número em pt-BR, sem casas desnecessárias. */
+    private fun numero(valor: Double, casas: Int = 2): String {
+        val texto = when {
+            casas == 0 -> "%.0f".format(valor)
+            valor >= 1000 -> "%.0f".format(valor)
+            valor >= 10 && casas == 2 -> "%.1f".format(valor)
+            else -> "%.${casas}f".format(valor)
+        }
+        return texto.replace('.', ',')
     }
 
     private fun String.comUnidade(unidade: String): String =

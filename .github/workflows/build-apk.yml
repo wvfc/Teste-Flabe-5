@@ -40,6 +40,9 @@ jobs:
       - name: Permissão de execução do gradlew
         run: chmod +x ./gradlew
 
+      - name: Testes unitários (motor de cálculo do MCA)
+        run: ./gradlew testDebugUnitTest --stacktrace
+
       - name: Build do APK de debug
         run: ./gradlew assembleDebug --stacktrace
 

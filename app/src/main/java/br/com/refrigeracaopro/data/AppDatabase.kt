@@ -15,9 +15,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
-        Projeto::class,
+        Projeto::class, EnsaioIsolacao::class, InspecaoTermografica::class,
+        Motor::class, EnsaioMca::class,
     ],
-    version = 6,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,6 +31,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun agendamentoDao(): AgendamentoDao
     abstract fun lancamentoDao(): LancamentoDao
     abstract fun projetoDao(): ProjetoDao
+    abstract fun ensaioIsolacaoDao(): EnsaioIsolacaoDao
+    abstract fun inspecaoTermograficaDao(): InspecaoTermograficaDao
+    abstract fun motorDao(): MotorDao
+    abstract fun ensaioMcaDao(): EnsaioMcaDao
 
     companion object {
         const val NOME_BANCO = "refrigeracao_pro.db"
@@ -94,13 +99,93 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 6→7: histórico de ensaios de isolação (megômetro). */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ensaios_isolacao (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                        "numero TEXT NOT NULL, dataHora INTEGER NOT NULL, " +
+                        "clienteId INTEGER, equipamentoId INTEGER, " +
+                        "tensaoV REAL NOT NULL, r30s REAL NOT NULL, r60s REAL NOT NULL, " +
+                        "r10min REAL NOT NULL, tempC REAL, tempBase REAL NOT NULL, " +
+                        "dar REAL, pi REAL, puntualCorrigido REAL, " +
+                        "condicao TEXT NOT NULL, observacoes TEXT NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_ensaios_isolacao_clienteId ON ensaios_isolacao (clienteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_ensaios_isolacao_equipamentoId ON ensaios_isolacao (equipamentoId)")
+            }
+        }
+
+        /** Migração 7→8: inspeções termográficas. */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS inspecoes_termograficas (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, " +
+                        "numero TEXT NOT NULL, dataHora INTEGER NOT NULL, " +
+                        "clienteId INTEGER, equipamentoId INTEGER, ponto TEXT NOT NULL, " +
+                        "material TEXT NOT NULL, emissividade REAL NOT NULL, " +
+                        "emissividadeCamera REAL, tempRefletida REAL, tempAmbiente REAL, " +
+                        "umidade REAL, distanciaM REAL, relacaoDS REAL, anguloGraus REAL, " +
+                        "externo INTEGER NOT NULL, ventoMs REAL, " +
+                        "correnteMedida REAL, correnteNominal REAL, classeIsolamento TEXT NOT NULL, " +
+                        "tempPonto REAL, tempSimilar REAL, " +
+                        "deltaTSimilar REAL, deltaTAmbiente REAL, deltaTCorrigido REAL, " +
+                        "severidade TEXT NOT NULL, diagnostico TEXT NOT NULL, recomendacao TEXT NOT NULL, " +
+                        "fotosTermicas TEXT NOT NULL, fotosVisiveis TEXT NOT NULL, " +
+                        "legendasFotos TEXT NOT NULL, observacoes TEXT NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_inspecoes_termograficas_clienteId ON inspecoes_termograficas (clienteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_inspecoes_termograficas_equipamentoId ON inspecoes_termograficas (equipamentoId)")
+            }
+        }
+
+        /** Migração 8→9: cadastro de motores e ensaios MCA. */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS motores (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, tag TEXT NOT NULL, " +
+                        "clienteId INTEGER, equipamentoId INTEGER, cliente TEXT NOT NULL, " +
+                        "setor TEXT NOT NULL, equipamentoAcionado TEXT NOT NULL, " +
+                        "fabricante TEXT NOT NULL, modelo TEXT NOT NULL, numeroSerie TEXT NOT NULL, " +
+                        "potenciaCV REAL, tensaoNominalV REAL, correnteNominalA REAL, " +
+                        "polos INTEGER, rpmNominal INTEGER, frequenciaHz REAL, " +
+                        "classeIsolamento TEXT NOT NULL, tipoLigacao TEXT NOT NULL, " +
+                        "acionamento TEXT NOT NULL, observacoes TEXT NOT NULL, criadoEm INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_motores_tag ON motores (tag)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_motores_clienteId ON motores (clienteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_motores_equipamentoId ON motores (equipamentoId)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ensaios_mca (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, numero TEXT NOT NULL, " +
+                        "motorId INTEGER NOT NULL, dataHora INTEGER NOT NULL, tecnico TEXT NOT NULL, " +
+                        "temperaturaCarcacaC REAL, umidadeRelativa REAL, " +
+                        "rascunho INTEGER NOT NULL, blocoAtual INTEGER NOT NULL, " +
+                        "segDesligado INTEGER NOT NULL, segCabosDesconectados INTEGER NOT NULL, " +
+                        "segCapacitorRemovido INTEGER NOT NULL, segAterrado INTEGER NOT NULL, " +
+                        "segCalibracao INTEGER NOT NULL, segAquecimento INTEGER NOT NULL, " +
+                        "resistencias TEXT NOT NULL, indutancias TEXT NOT NULL, " +
+                        "altaFrequencia TEXT NOT NULL, capacitancias TEXT NOT NULL, ric TEXT NOT NULL, " +
+                        "isolacaoMOhm REAL, tensaoEnsaioV REAL, leitura1min REAL, leitura10min REAL, " +
+                        "observacoes TEXT NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_ensaios_mca_motorId ON ensaios_mca (motorId)")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     NOME_BANCO
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                ).addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
+                )
                     .build().also { instancia = it }
             }
 

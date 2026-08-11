@@ -3,160 +3,284 @@ package br.com.refrigeracaopro.data
 import kotlin.math.pow
 
 /**
- * Diagnóstico de ensaio com megôhmetro (resistência de isolamento).
+ * Painel de diagnóstico de megômetro (megger).
  *
- * Índices calculados:
- *  - Isolação puntual: leitura de 60 s (valor de referência do ensaio).
- *  - DAR (Índice de Absorção Dielétrica) = R60s / R30s.
- *  - PI (Índice de Polarização) = R10min / R1min.
+ * Calcula a isolação puntual (60 s), o Índice de Absorção (DAR) e o Índice de
+ * Polarização (PI) a partir das leituras de resistência de isolamento, corrige
+ * os valores pela temperatura e classifica a condição do equipamento conforme
+ * as faixas usuais da **IEEE 43**.
  *
- * Interpretação baseada na prática da IEEE 43 (Recommended Practice for
- * Testing Insulation Resistance of Electric Machinery).
+ *  - DAR = R60s / R30s
+ *  - PI  = R10min / R1min
+ *  - Correção de temperatura: a resistência cai pela metade a cada 10 °C de
+ *    aumento, logo R_base = R_medido × 2^((T_medida − T_base) / 10).
+ *
+ * Os valores são de referência — a norma aplicável e a recomendação do
+ * fabricante do equipamento sempre prevalecem.
  */
 object Megohmetro {
 
-    /** Condição do isolamento, do pior para o melhor. */
-    enum class Condicao(val rotulo: String, val cor: Long) {
-        PERIGOSO("Perigoso", 0xFFC62828),
-        POBRE("Pobre", 0xFFEF6C00),
-        DUVIDOSO("Duvidoso", 0xFFF9A825),
-        BOM("Bom", 0xFF2E7D32),
-        EXCELENTE("Excelente", 0xFF1565C0),
+    /** Temperaturas base usuais para correção das leituras. */
+    const val TEMP_BASE_40 = 40.0
+    const val TEMP_BASE_20 = 20.0
+
+    /**
+     * Acima deste valor (R60s corrigido) a IEEE 43 considera que os índices
+     * DAR/PI podem perder o significado — a isolação já é muito alta.
+     */
+    const val ISOLACAO_ALTA_MOHM = 5000.0
+
+    /** Condição geral do equipamento apresentada no diagnóstico automático. */
+    enum class Condicao(val rotulo: String) {
+        EXCELENTE("Excelente"),
+        BOM("Bom"),
+        DUVIDOSO("Duvidoso"),
+        POBRE("Pobre"),
+        PERIGOSO("Perigoso"),
     }
 
+    /** Leituras do ensaio. Resistências em MΩ; 0 (ou vazio) = não informado. */
     data class Entrada(
-        val tensaoV: Double,
-        val r30s: Double,
-        val r60s: Double,
-        val r10min: Double,
-        val temperaturaC: Double?,
+        val tensaoV: Double = 0.0,
+        val r30s: Double = 0.0,
+        val r60s: Double = 0.0,
+        val r10min: Double = 0.0,
+        val tempC: Double? = null,
+        val tempBase: Double = TEMP_BASE_40,
     )
 
+    /** Resultado calculado a partir das leituras. */
     data class Resultado(
-        val puntual: Double?,          // MΩ em 60 s
-        val puntualCorrigido: Double?, // MΩ corrigido para 40 °C
-        val dar: Double?,
-        val pi: Double?,
-        val condicao: Condicao?,
-        val diagnostico: String,
-        val avaliacaoDar: String?,
-        val avaliacaoPi: String?,
-        val minimoRecomendado: Double?, // MΩ (IEEE 43 / regra kV+1)
-        val avisos: List<String>,
+        /** Isolação puntual: leitura de 60 s (MΩ). */
+        val puntual: Double? = null,
+        /** Isolação puntual corrigida para a temperatura base (MΩ). */
+        val puntualCorrigido: Double? = null,
+        /** Fator aplicado na correção de temperatura. */
+        val fatorTemperatura: Double? = null,
+        val dar: Double? = null,
+        val pi: Double? = null,
+        val classeDar: String = "",
+        val classePi: String = "",
+        val condicao: Condicao? = null,
+        val diagnostico: String = "",
+        val recomendacao: String = "",
+        /** Mínimo de referência (kV + 1) MΩ, a 40 °C. */
+        val minimoRecomendado: Double? = null,
+        val atendeMinimo: Boolean? = null,
+        val avisos: List<String> = emptyList(),
     )
 
-    /** Temperatura base para correção das leituras (prática usual: 40 °C). */
-    const val TEMPERATURA_BASE = 40.0
+    /** Fator de correção da leitura para a temperatura base. */
+    fun fatorCorrecao(tempC: Double, tempBase: Double): Double = 2.0.pow((tempC - tempBase) / 10.0)
 
-    /**
-     * Fator de correção de temperatura: a resistência de isolamento cai pela
-     * metade a cada 10 °C de aumento. Para corrigir uma leitura feita a T para
-     * a temperatura base, multiplica-se por 2^((T - base)/10).
-     */
-    fun fatorCorrecao(temperaturaC: Double, base: Double = TEMPERATURA_BASE): Double =
-        2.0.pow((temperaturaC - base) / 10.0)
-
-    /** Tabela de fatores de correção para exibição (referência rápida). */
-    val TABELA_CORRECAO: List<Pair<Int, Double>> =
-        listOf(10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60).map { t -> t to fatorCorrecao(t.toDouble()) }
-
-    /** Avaliação do PI conforme faixas usuais (IEEE 43). */
-    fun avaliarPi(pi: Double): Pair<Condicao, String> = when {
-        pi < 1.0 -> Condicao.PERIGOSO to "PI < 1,0 — Perigoso: a resistência cai ao longo do ensaio, indicando isolamento comprometido."
-        pi < 2.0 -> Condicao.POBRE to "PI entre 1,0 e 2,0 — Pobre: isolamento com umidade ou contaminação relevante."
-        pi < 4.0 -> Condicao.BOM to "PI entre 2,0 e 4,0 — Bom: isolamento em condição adequada."
-        else -> Condicao.EXCELENTE to "PI acima de 4,0 — Excelente: isolamento seco e em ótimo estado."
+    /** Classificação isolada do DAR (Índice de Absorção). */
+    fun classificarDar(dar: Double): String = when {
+        dar < 1.25 -> "Inadequado"
+        dar <= 1.6 -> "Aceitável"
+        else -> "Excelente"
     }
 
-    /** Avaliação do DAR conforme faixas usuais. */
-    fun avaliarDar(dar: Double): Pair<Condicao, String> = when {
-        dar < 1.25 -> Condicao.POBRE to "DAR < 1,25 — Inadequado: sugere umidade ou contaminação."
-        dar <= 1.6 -> Condicao.BOM to "DAR entre 1,25 e 1,6 — Aceitável."
-        else -> Condicao.EXCELENTE to "DAR acima de 1,6 — Excelente."
+    /** Classificação isolada do PI (Índice de Polarização) — IEEE 43. */
+    fun classificarPi(pi: Double): String = when {
+        pi < 1.0 -> "Perigoso"
+        pi < 2.0 -> "Pobre"
+        pi < 4.0 -> "Bom"
+        else -> "Excelente"
     }
-
-    /**
-     * Mínimo recomendado de isolação (MΩ) pela regra prática kV + 1,
-     * onde kV é a tensão nominal do equipamento em kV.
-     */
-    fun minimoRecomendado(tensaoV: Double): Double? =
-        if (tensaoV <= 0) null else (tensaoV / 1000.0) + 1.0
 
     fun calcular(e: Entrada): Resultado {
+        val r30 = e.r30s.takeIf { it > 0 }
+        val r60 = e.r60s.takeIf { it > 0 }
+        val r10 = e.r10min.takeIf { it > 0 }
+
+        val dar = if (r30 != null && r60 != null) r60 / r30 else null
+        val pi = if (r60 != null && r10 != null) r10 / r60 else null
+
+        val fator = e.tempC?.let { fatorCorrecao(it, e.tempBase) }
+        val puntualCorrigido = if (r60 != null && fator != null) r60 * fator else null
+
+        // Mínimo clássico de referência da IEEE 43: (kV do ensaio + 1) MΩ a 40 °C
+        val minimo = e.tensaoV.takeIf { it > 0 }?.let { it / 1000.0 + 1.0 }
+        val referencia = puntualCorrigido ?: r60
+        val atendeMinimo = if (minimo != null && referencia != null) referencia >= minimo else null
+
+        // Resistência que cai ao longo do ensaio: sinal de ruptura dielétrica
+        val quedaDurante = (r30 != null && r60 != null && r60 < r30) ||
+            (r60 != null && r10 != null && r10 < r60)
+
         val avisos = mutableListOf<String>()
-
-        val puntual = e.r60s.takeIf { it > 0 }
-        val dar = if (e.r30s > 0 && e.r60s > 0) e.r60s / e.r30s else null
-        val pi = if (e.r60s > 0 && e.r10min > 0) e.r10min / e.r60s else null
-
-        val corrigido = if (puntual != null && e.temperaturaC != null)
-            puntual * fatorCorrecao(e.temperaturaC) else null
-
-        val avalDar = dar?.let { avaliarDar(it) }
-        val avalPi = pi?.let { avaliarPi(it) }
-
-        // A condição final segue o PI (índice mais confiável); sem PI, usa o DAR.
-        var condicao = avalPi?.first ?: avalDar?.first
-
-        val minimo = minimoRecomendado(e.tensaoV)
-        val referencia = corrigido ?: puntual
-        if (minimo != null && referencia != null && referencia < minimo) {
-            avisos.add(
-                "Isolação de %.0f MΩ abaixo do mínimo recomendado (%.1f MΩ pela regra kV + 1). Investigar antes de energizar."
-                    .format(referencia, minimo)
-            )
-            // Isolação abaixo do mínimo rebaixa o diagnóstico
-            if (condicao == null || condicao.ordinal > Condicao.DUVIDOSO.ordinal) condicao = Condicao.DUVIDOSO
+        if (r30 != null && r60 != null && r60 < r30) {
+            avisos += "A leitura caiu de 30 s para 60 s. Queda de resistência durante o ensaio indica " +
+                "ruptura dielétrica ou rachadura na isolação — interrompa e investigue."
+        }
+        if (r60 != null && r10 != null && r10 < r60) {
+            avisos += "A leitura caiu de 1 min para 10 min. Isolação instável sob tensão: suspeita de " +
+                "umidade, contaminação ou defeito dielétrico em evolução."
+        }
+        if (atendeMinimo == false && minimo != null) {
+            avisos += "Isolação abaixo do mínimo de referência de %.1f MΩ (kV do ensaio + 1) da IEEE 43."
+                .format(minimo)
+        }
+        if (referencia != null && referencia > ISOLACAO_ALTA_MOHM) {
+            avisos += "Com isolação acima de 5.000 MΩ os índices DAR e PI podem perder o significado " +
+                "(IEEE 43); nesse caso prevalece a leitura puntual."
+        }
+        if (e.tempC == null && r60 != null) {
+            avisos += "Temperatura não informada: os valores não foram corrigidos e não devem ser " +
+                "comparados diretamente com ensaios anteriores."
+        }
+        if (e.tensaoV > 0 && e.tensaoV < 250) {
+            avisos += "Tensão de ensaio baixa (%.0f V) para máquinas industriais — confira a tensão nominal do equipamento."
+                .format(e.tensaoV)
         }
 
-        if (pi != null && puntual != null && puntual > 5000) {
-            avisos.add(
-                "Isolação muito alta (> 5000 MΩ): conforme a IEEE 43, o PI perde significado nesses casos — " +
-                    "considere apenas o valor puntual."
-            )
-        }
-        if (e.temperaturaC == null) {
-            avisos.add("Sem temperatura informada: os valores não foram corrigidos. Compare leituras sempre na mesma temperatura base.")
-        }
-        if (e.tensaoV <= 0) avisos.add("Informe a tensão de teste para verificar o mínimo recomendado.")
-
-        val diagnostico = montarDiagnostico(condicao, avalPi?.second, avalDar?.second, pi, dar)
+        val condicao = condicaoDe(pi, dar, atendeMinimo, quedaDurante)
 
         return Resultado(
-            puntual = puntual,
-            puntualCorrigido = corrigido,
+            puntual = r60,
+            puntualCorrigido = puntualCorrigido,
+            fatorTemperatura = fator,
             dar = dar,
             pi = pi,
+            classeDar = dar?.let { classificarDar(it) } ?: "",
+            classePi = pi?.let { classificarPi(it) } ?: "",
             condicao = condicao,
-            diagnostico = diagnostico,
-            avaliacaoDar = avalDar?.second,
-            avaliacaoPi = avalPi?.second,
+            diagnostico = condicao?.let { diagnosticoDe(it, pi, dar) } ?: "",
+            recomendacao = condicao?.let { RECOMENDACOES[it] ?: "" } ?: "",
             minimoRecomendado = minimo,
+            atendeMinimo = atendeMinimo,
             avisos = avisos,
         )
     }
 
-    private fun montarDiagnostico(
-        condicao: Condicao?, textoPi: String?, textoDar: String?, pi: Double?, dar: Double?,
-    ): String {
-        if (condicao == null) return "Preencha as leituras para obter o diagnóstico."
-        val base = when (condicao) {
-            Condicao.EXCELENTE -> "Isolamento em excelente estado. Equipamento apto à operação."
-            Condicao.BOM -> "Isolamento em boas condições. Manter o acompanhamento periódico."
-            Condicao.DUVIDOSO -> "Isolamento duvidoso. Reavaliar o ensaio e investigar umidade/contaminação antes de liberar."
-            Condicao.POBRE -> "Isolamento pobre. Recomenda-se secagem/limpeza e novo ensaio antes de energizar."
-            Condicao.PERIGOSO -> "Condição perigosa. NÃO energize o equipamento: há forte indício de falha de isolamento."
+    /**
+     * Condição geral: o PI manda quando existe; sem ele, usa-se o DAR. Um DAR
+     * inadequado com PI aceitável rebaixa o quadro para "Duvidoso" (indício de
+     * contaminação superficial), assim como uma isolação abaixo do mínimo.
+     */
+    private fun condicaoDe(pi: Double?, dar: Double?, atendeMinimo: Boolean?, quedaDurante: Boolean): Condicao? {
+        if (quedaDurante) return Condicao.PERIGOSO
+        var condicao = when {
+            pi != null -> when {
+                pi < 1.0 -> Condicao.PERIGOSO
+                pi < 2.0 -> Condicao.POBRE
+                pi < 4.0 -> Condicao.BOM
+                else -> Condicao.EXCELENTE
+            }
+            dar != null -> when {
+                dar < 1.25 -> Condicao.POBRE
+                dar <= 1.6 -> Condicao.DUVIDOSO
+                else -> Condicao.BOM
+            }
+            else -> return null
         }
-        // Combinação típica de defeito: DAR baixo com PI aceitável
-        val nota = if (dar != null && pi != null && dar < 1.25 && pi >= 2.0)
-            "\n\nObservação: DAR baixo com PI aceitável sugere contaminação superficial ou umidade localizada inicial."
-        else ""
-        return listOfNotNull(base, textoPi, textoDar).joinToString("\n\n") + nota
+        if (pi != null && dar != null && dar < 1.25 && condicao.ordinal < Condicao.DUVIDOSO.ordinal) {
+            condicao = Condicao.DUVIDOSO
+        }
+        if (atendeMinimo == false && condicao.ordinal < Condicao.DUVIDOSO.ordinal) {
+            condicao = Condicao.DUVIDOSO
+        }
+        return condicao
     }
 
-    // ---------- Conteúdo técnico de referência ----------
+    private fun diagnosticoDe(condicao: Condicao, pi: Double?, dar: Double?): String {
+        val indices = buildString {
+            if (pi != null) append("PI = %.2f (%s)".format(pi, classificarPi(pi)))
+            if (pi != null && dar != null) append(" • ")
+            if (dar != null) append("DAR = %.2f (%s)".format(dar, classificarDar(dar)))
+        }
+        val base = DIAGNOSTICOS[condicao] ?: ""
+        return if (indices.isBlank()) base else "$indices\n\n$base"
+    }
 
-    val PASSO_A_PASSO = listOf(
+    private val DIAGNOSTICOS = mapOf(
+        Condicao.EXCELENTE to
+            "Isolação em excelente estado. A resistência cresce bem ao longo do ensaio, " +
+            "indicando isolação seca, limpa e com boa capacidade de polarização.",
+        Condicao.BOM to
+            "Isolação em bom estado, dentro do esperado para operação. Mantenha o " +
+            "acompanhamento periódico para observar a tendência entre as medições.",
+        Condicao.DUVIDOSO to
+            "Isolação duvidosa: os índices não se confirmam entre si ou o valor está no " +
+            "limite. Há indício de umidade ou contaminação superficial. Repita o ensaio " +
+            "após limpeza e secagem antes de liberar o equipamento.",
+        Condicao.POBRE to
+            "Isolação pobre. A resistência quase não evolui com o tempo, comportamento " +
+            "típico de umidade, sujeira condutiva ou envelhecimento da isolação. " +
+            "Não recomendável operar sem tratamento.",
+        Condicao.PERIGOSO to
+            "Condição perigosa. A resistência não cresce (ou cai) durante o ensaio, o que " +
+            "aponta isolação comprometida — umidade severa, contaminação ou ruptura " +
+            "dielétrica. Não energize o equipamento.",
+    )
+
+    private val RECOMENDACOES = mapOf(
+        Condicao.EXCELENTE to "Liberar para operação e manter o histórico das leituras para análise de tendência.",
+        Condicao.BOM to "Liberar para operação e repetir o ensaio no próximo período de manutenção preventiva.",
+        Condicao.DUVIDOSO to "Limpar, secar e repetir o ensaio. Comparar com leituras anteriores corrigidas na mesma temperatura.",
+        Condicao.POBRE to "Programar secagem/limpeza da isolação e reensaiar. Investigar infiltração e contaminação.",
+        Condicao.PERIGOSO to "Não energizar. Isolar o equipamento, investigar a falha e encaminhar para reparo/rebobinamento.",
+    )
+
+    // ------------------------------------------------------------------
+    // Tendência (acompanhamento preditivo)
+    // ------------------------------------------------------------------
+
+    /** Queda percentual que já merece alerta entre dois ensaios. */
+    const val QUEDA_ALERTA = 0.40
+
+    /** Um ponto do histórico: data do ensaio e isolação (corrigida, quando houver). */
+    data class Ponto(val dataHora: Long, val valor: Double)
+
+    data class Tendencia(
+        /** Variação relativa: −0,38 significa queda de 38%. */
+        val variacao: Double,
+        val dias: Long,
+        val alerta: Boolean,
+        val texto: String,
+    )
+
+    /** Variação relativa entre duas leituras (0,25 = subiu 25%). */
+    fun variacao(atual: Double, anterior: Double): Double? =
+        if (anterior > 0) (atual - anterior) / anterior else null
+
+    /**
+     * Tendência entre o ensaio mais antigo e o mais recente da lista.
+     * Espera os pontos ordenados do mais antigo para o mais novo.
+     */
+    fun tendencia(pontos: List<Ponto>): Tendencia? {
+        if (pontos.size < 2) return null
+        val primeiro = pontos.first()
+        val ultimo = pontos.last()
+        val variacao = variacao(ultimo.valor, primeiro.valor) ?: return null
+        val dias = (ultimo.dataHora - primeiro.dataHora) / 86_400_000L
+        val periodo = when {
+            dias >= 60 -> "%d meses".format(dias / 30)
+            dias >= 1 -> "$dias dias"
+            else -> "o mesmo dia"
+        }
+        val percentual = "%.0f%%".format(kotlin.math.abs(variacao) * 100)
+        val texto = when {
+            variacao <= -QUEDA_ALERTA ->
+                "Atenção: a isolação caiu $percentual em $periodo (${pontos.size} ensaios). " +
+                    "Queda dessa ordem indica degradação em curso — antecipe a inspeção."
+            variacao < -0.10 ->
+                "A isolação caiu $percentual em $periodo. Acompanhe de perto no próximo ensaio."
+            variacao < 0.10 ->
+                "Isolação estável ($percentual de variação em $periodo). Comportamento esperado."
+            else ->
+                "A isolação subiu $percentual em $periodo — normalmente reflexo de limpeza, " +
+                    "secagem ou de medição em condição mais seca."
+        }
+        return Tendencia(variacao, dias, variacao <= -QUEDA_ALERTA, texto)
+    }
+
+    // ------------------------------------------------------------------
+    // Referência técnica
+    // ------------------------------------------------------------------
+
+    /** Procedimento comum a todos os ensaios (texto de referência). */
+    val PASSO_A_PASSO_GERAL = listOf(
         "1. Desenergize e aterre o equipamento.",
         "2. Conecte a garra EARTH na carcaça e LINE no condutor.",
         "3. Aplique a tensão.",
@@ -164,28 +288,84 @@ object Megohmetro {
         "5. Desligue e aguarde a descarga automática antes de tocar.",
     )
 
-    val EXPLICACAO_ENSAIOS = listOf(
-        "Puntual (spot test)" to
-            "Leitura única, normalmente em 60 s, usada para comparar com o mínimo recomendado e com o histórico do equipamento.",
-        "DAR (Índice de Absorção)" to
-            "Relação entre as leituras de 60 s e 30 s (R60s / R30s). Ensaio rápido, útil quando não há tempo para os 10 minutos.",
-        "PI (Índice de Polarização)" to
-            "Relação entre as leituras de 10 min e 1 min (R10min / R1min). É o índice mais confiável para avaliar umidade e envelhecimento.",
+    /** Ensaio: o que fazer e como ler em cada um dos três testes. */
+    data class Ensaio(val nome: String, val passos: List<String>, val nota: String)
+
+    val ENSAIOS = listOf(
+        Ensaio(
+            nome = "Isolação Puntual (spot test)",
+            passos = listOf(
+                "Siga o procedimento comum acima.",
+                "Selecione a tensão de ensaio conforme a tensão nominal do equipamento.",
+                "Aplique a tensão e mantenha por 60 segundos.",
+                "Anote a leitura de 60 s: esse é o valor de isolação puntual.",
+                "Corrija a leitura para a temperatura base antes de comparar com ensaios anteriores.",
+            ),
+            nota = "Referência clássica da IEEE 43: mínimo de (kV do ensaio + 1) MΩ a 40 °C.",
+        ),
+        Ensaio(
+            nome = "DAR — Índice de Absorção",
+            passos = listOf(
+                "Siga o procedimento comum acima.",
+                "Aplique a tensão e dispare o cronômetro no mesmo instante.",
+                "Anote a leitura aos 30 segundos (R30s).",
+                "Sem interromper o ensaio, anote a leitura aos 60 segundos (R60s).",
+                "Calcule DAR = R60s ÷ R30s.",
+            ),
+            nota = "Ensaio rápido (1 minuto), útil quando não há tempo para os 10 minutos do PI.",
+        ),
+        Ensaio(
+            nome = "PI — Índice de Polarização",
+            passos = listOf(
+                "Siga o procedimento comum acima.",
+                "Aplique a tensão e mantenha o ensaio por 10 minutos ininterruptos.",
+                "Anote a leitura em 1 minuto (R1min).",
+                "Anote a leitura em 10 minutos (R10min).",
+                "Calcule PI = R10min ÷ R1min.",
+            ),
+            nota = "É o ensaio mais confiável para avaliar umidade e envelhecimento da isolação.",
+        ),
     )
 
-    /** Defeitos comuns e suas causas prováveis. */
+    /** Defeito comum observado no ensaio e suas causas prováveis. */
+    data class Defeito(val sintoma: String, val causas: String)
+
     val DEFEITOS = listOf(
-        "Baixa isolação em todos os tempos" to
-            "Umidade geral, contaminação severa, envelhecimento térmico.",
-        "DAR baixo mas PI aceitável" to
-            "Contaminação superficial ou umidade localizada inicial.",
-        "Queda abrupta de resistência durante o teste" to
-            "Ruptura dielétrica, rachadura na isolação.",
+        Defeito(
+            sintoma = "Baixa isolação em todos os tempos",
+            causas = "Umidade geral, contaminação severa, envelhecimento térmico.",
+        ),
+        Defeito(
+            sintoma = "DAR baixo mas PI aceitável",
+            causas = "Contaminação superficial ou umidade localizada inicial.",
+        ),
+        Defeito(
+            sintoma = "Queda abrupta de resistência durante o teste",
+            causas = "Ruptura dielétrica, rachadura na isolação.",
+        ),
     )
 
-    val TEXTO_CORRECAO =
+    val CORRECAO_TEMPERATURA_TEXTO =
         "A resistência de isolamento cai pela metade a cada 10 °C de aumento de temperatura. " +
-            "Para comparar leituras, é necessário corrigir para uma temperatura base (geralmente 20 °C ou 40 °C).\n\n" +
-            "Neste painel a correção usa 40 °C como base: o valor corrigido é a leitura multiplicada por " +
-            "2^((T − 40)/10). Assim, ensaios feitos em dias e temperaturas diferentes podem ser comparados entre si."
+            "Para comparar leituras, é necessário corrigir para uma temperatura base " +
+            "(geralmente 20 °C ou 40 °C).\n\n" +
+            "Ou seja: uma medição feita a 50 °C vale o dobro quando corrigida para 40 °C, e uma " +
+            "medição feita a 30 °C vale a metade. Sem essa correção, o mesmo equipamento parece " +
+            "piorar no verão e melhorar no inverno."
+
+    const val CORRECAO_FORMULA = "R_base = R_medido × 2^((T_medida − T_base) ÷ 10)"
+
+    /** Temperaturas de ensaio e os fatores de correção para 40 °C e 20 °C. */
+    val TABELA_CORRECAO: List<Triple<Int, Double, Double>> =
+        listOf(10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60).map { t ->
+            Triple(t, fatorCorrecao(t.toDouble(), TEMP_BASE_40), fatorCorrecao(t.toDouble(), TEMP_BASE_20))
+        }
+
+    /** Tensões de ensaio usuais por faixa de tensão nominal do equipamento. */
+    val TENSOES_ENSAIO = listOf(
+        "Até 100 V" to "100 a 250 V",
+        "440 a 550 V" to "500 a 1000 V",
+        "2400 V" to "1000 a 2500 V",
+        "4160 V ou mais" to "2500 a 5000 V",
+    )
 }
