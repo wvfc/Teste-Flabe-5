@@ -1155,31 +1155,13 @@ object PdfGenerator {
         return arquivo
     }
 
-    private fun indicesComLimites(indices: Mca.Indices, limites: Mca.LimitesMca): List<Pair<String, String>> {
-        fun linha(nome: String, valor: Double?, atencao: Double, critico: Double, unidade: String, acima: Boolean = true):
-            Pair<String, String> {
-            val severidade = if (acima) Mca.severidadeAcima(valor, atencao, critico)
-            else Mca.severidadeAbaixo(valor, atencao, critico)
-            return nome to if (valor == null) "não avaliado" else
-                "${numero(valor, 2)} $unidade  [$severidade]  " +
-                    (if (acima) "atenção ≥ ${numero(atencao, 2)} / crítico ≥ ${numero(critico, 2)}"
-                    else "atenção ≤ ${numero(atencao, 2)} / crítico ≤ ${numero(critico, 2)}")
+    /** Usa a mesma tabela de índices × limites da tela de parecer. */
+    private fun indicesComLimites(indices: Mca.Indices, limites: Mca.LimitesMca): List<Pair<String, String>> =
+        Mca.semaforo(indices, limites).map { linha ->
+            val nome = if (linha.unidade.isBlank()) linha.nome else "${linha.nome} (${linha.unidade})"
+            nome to if (linha.valor == null) Mca.NAO_AVALIADO
+            else "${linha.valorTexto}  [${linha.severidade}]  ${linha.limiteTexto}"
         }
-        return listOf(
-            linha("Desbalanceamento R40 (%)", indices.desbalR40, limites.desbalR40Atencao, limites.desbalR40Critico, "%"),
-            linha("Desbalanceamento L 1 kHz (%)", indices.desbalL1k, limites.desbalLAtencao, limites.desbalLCritico, "%"),
-            linha("Desbalanceamento Z 1 kHz (%)", indices.desbalZ1k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
-            linha("Desbalanceamento Z 10 kHz (%)", indices.desbalZ10k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
-            linha("Delta θ 1 kHz (°)", indices.deltaTheta1k, limites.deltaThetaAtencao, limites.deltaThetaCritico, "°"),
-            linha("Delta θ 10 kHz (°)", indices.deltaTheta10k, limites.deltaThetaAtencao, limites.deltaThetaCritico, "°"),
-            linha("Spread I/F (p.p.)", indices.spreadIf, limites.spreadIfAtencao, limites.spreadIfCritico, "p.p."),
-            linha("Desbalanceamento C p/ terra (%)", indices.desbalCapacitancia, limites.desbalCAtencao, limites.desbalCCritico, "%"),
-            linha("Espalhamento amplitude RIC (%)", indices.ric?.espalhamentoPercentual, limites.ricAmplitudeAtencao, limites.ricAmplitudeCritico, "%"),
-            linha("Desvio senoidal RIC (%)", indices.ric?.desvioSenoidalPercentual, limites.ricSenoideAtencao, limites.ricSenoideCritico, "%"),
-            linha("Isolação (MΩ)", indices.isolacaoMOhm, limites.isolacaoAtencaoMOhm, limites.isolacaoCriticoMOhm, "MΩ", acima = false),
-            linha("Índice de polarização", indices.pi, limites.piAtencao, limites.piCritico, "", acima = false),
-        )
-    }
 
     /** Desenha as três curvas do RIC num bitmap para embutir no laudo. */
     private fun graficoRicBitmap(ric: Map<Mca.Par, List<Double?>>): Bitmap? {

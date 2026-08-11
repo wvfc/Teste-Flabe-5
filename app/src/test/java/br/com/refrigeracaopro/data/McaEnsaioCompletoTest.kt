@@ -117,6 +117,39 @@ class McaEnsaioCompletoTest {
         assertTrue(json.trim().startsWith("{"))
     }
 
+    /**
+     * Regressão do crash em campo: a unidade "%" era interpolada dentro da
+     * string de formato ("%.2f %"), e o `%` final virava um especificador
+     * incompleto — `UnknownFormatConversionException` ao abrir o parecer de
+     * qualquer ensaio preenchido.
+     */
+    @Test
+    fun `semaforo formata todas as unidades sem quebrar o format`() {
+        val indices = Mca.calcularIndices(decodificar(codificar(leiturasCompletas())))
+        val linhas = Mca.semaforo(indices, Mca.LimitesMca())
+
+        assertTrue("deveria haver linhas com unidade %", linhas.any { it.unidade == "%" })
+        linhas.forEach { linha ->
+            // Não pode lançar exceção em nenhuma linha
+            val valor = linha.valorTexto
+            val limite = linha.limiteTexto
+            assertTrue("valor vazio em ${linha.nome}", valor.isNotBlank())
+            assertTrue("limite vazio em ${linha.nome}", limite.isNotBlank())
+            if (linha.valor != null && linha.unidade.isNotBlank()) {
+                assertTrue(
+                    "a unidade deveria aparecer no texto de ${linha.nome}: $valor",
+                    valor.endsWith(linha.unidade),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `semaforo marca nao avaliado quando falta dado`() {
+        val linhas = Mca.semaforo(Mca.Indices(), Mca.LimitesMca())
+        assertTrue(linhas.all { it.valorTexto == Mca.NAO_AVALIADO })
+    }
+
     @Test
     fun `ensaio completo em locale com virgula decimal`() {
         // O app roda em pt-BR: "%.2f" produz "1,23". Se algum número

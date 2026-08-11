@@ -379,6 +379,78 @@ object Mca {
     }
 
     // ------------------------------------------------------------------
+    // Semáforo (tabela de índices × limites)
+    // ------------------------------------------------------------------
+
+    /**
+     * Uma linha do semáforo: o índice, o valor apurado e os limites adotados.
+     *
+     * Os textos são montados aqui — e não na tela — para que a formatação
+     * fique coberta por teste. A unidade **nunca** entra numa string de
+     * formato: "%" viraria um especificador incompleto e o `String.format`
+     * lançaria `UnknownFormatConversionException`.
+     */
+    data class LinhaIndice(
+        val nome: String,
+        val valor: Double?,
+        val unidade: String,
+        val atencao: Double,
+        val critico: Double,
+        val acima: Boolean,
+        val severidade: Severidade?,
+    ) {
+        /** Valor formatado com a unidade, ou "não avaliado" quando falta dado. */
+        val valorTexto: String
+            get() = valor?.let { "%.2f".format(it) + if (unidade.isBlank()) "" else " $unidade" }
+                ?: NAO_AVALIADO
+
+        /** Faixa adotada, no sentido correto do índice. */
+        val limiteTexto: String
+            get() = if (acima) "atenção ≥ %.2f • crítico ≥ %.2f".format(atencao, critico)
+            else "atenção ≤ %.2f • crítico ≤ %.2f".format(atencao, critico)
+    }
+
+    const val NAO_AVALIADO = "não avaliado"
+
+    /** Monta o semáforo completo do ensaio. */
+    fun semaforo(indices: Indices, limites: LimitesMca): List<LinhaIndice> {
+        fun linha(
+            nome: String,
+            valor: Double?,
+            atencao: Double,
+            critico: Double,
+            unidade: String,
+            acima: Boolean = true,
+        ) = LinhaIndice(
+            nome = nome,
+            valor = valor,
+            unidade = unidade,
+            atencao = atencao,
+            critico = critico,
+            acima = acima,
+            severidade = if (acima) severidadeAcima(valor, atencao, critico)
+            else severidadeAbaixo(valor, atencao, critico),
+        )
+
+        return listOf(
+            linha("Desbalanceamento R40", indices.desbalR40, limites.desbalR40Atencao, limites.desbalR40Critico, "%"),
+            linha("Desbalanceamento L (100 Hz)", indices.desbalL100, limites.desbalLAtencao, limites.desbalLCritico, "%"),
+            linha("Desbalanceamento L (1 kHz)", indices.desbalL1k, limites.desbalLAtencao, limites.desbalLCritico, "%"),
+            linha("Desbalanceamento Z (100 Hz)", indices.desbalZ100, limites.desbalZAtencao, limites.desbalZCritico, "%"),
+            linha("Desbalanceamento Z (1 kHz)", indices.desbalZ1k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
+            linha("Desbalanceamento Z (10 kHz)", indices.desbalZ10k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
+            linha("Delta θ (1 kHz)", indices.deltaTheta1k, limites.deltaThetaAtencao, limites.deltaThetaCritico, "°"),
+            linha("Delta θ (10 kHz)", indices.deltaTheta10k, limites.deltaThetaAtencao, limites.deltaThetaCritico, "°"),
+            linha("Spread I/F", indices.spreadIf, limites.spreadIfAtencao, limites.spreadIfCritico, "p.p."),
+            linha("Desbalanceamento C p/ terra", indices.desbalCapacitancia, limites.desbalCAtencao, limites.desbalCCritico, "%"),
+            linha("Espalhamento amplitude RIC", indices.ric?.espalhamentoPercentual, limites.ricAmplitudeAtencao, limites.ricAmplitudeCritico, "%"),
+            linha("Desvio senoidal RIC", indices.ric?.desvioSenoidalPercentual, limites.ricSenoideAtencao, limites.ricSenoideCritico, "%"),
+            linha("Isolação", indices.isolacaoMOhm, limites.isolacaoAtencaoMOhm, limites.isolacaoCriticoMOhm, "MΩ", acima = false),
+            linha("Índice de polarização", indices.pi, limites.piAtencao, limites.piCritico, "", acima = false),
+        )
+    }
+
+    // ------------------------------------------------------------------
     // Árvore de diagnóstico
     // ------------------------------------------------------------------
 

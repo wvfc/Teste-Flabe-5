@@ -122,7 +122,7 @@ fun McaParecerScreen(nav: NavController, ensaioId: Long, vm: McaViewModel = view
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             ) {
                 Column(Modifier.padding(14.dp)) {
-                    linhasSemaforo(indices, limites).forEachIndexed { indice, linha ->
+                    Mca.semaforo(indices, limites).forEachIndexed { indice, linha ->
                         if (indice > 0) HorizontalDivider(Modifier.padding(vertical = 6.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
@@ -133,13 +133,13 @@ fun McaParecerScreen(nav: NavController, ensaioId: Long, vm: McaViewModel = view
                             Column(Modifier.weight(1f)) {
                                 Text(linha.nome, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    linha.limite,
+                                    linha.limiteTexto,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             Text(
-                                linha.valor,
+                                linha.valorTexto,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = corSeveridadeMca(linha.severidade),
@@ -366,40 +366,6 @@ private fun TituloMca(texto: String) {
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
-    )
-}
-
-internal data class LinhaSemaforo(
-    val nome: String,
-    val valor: String,
-    val limite: String,
-    val severidade: Mca.Severidade?,
-)
-
-/** Monta as linhas do semáforo, marcando como não avaliado o que falta. */
-internal fun linhasSemaforo(indices: Mca.Indices, limites: Mca.LimitesMca): List<LinhaSemaforo> {
-    fun linha(nome: String, valor: Double?, atencao: Double, critico: Double, unidade: String, acima: Boolean = true) =
-        LinhaSemaforo(
-            nome = nome,
-            valor = valor?.let { "%.2f $unidade".format(it) } ?: "não avaliado",
-            limite = if (acima) "atenção ≥ %.2f • crítico ≥ %.2f".format(atencao, critico)
-            else "atenção ≤ %.2f • crítico ≤ %.2f".format(atencao, critico),
-            severidade = if (acima) Mca.severidadeAcima(valor, atencao, critico)
-            else Mca.severidadeAbaixo(valor, atencao, critico),
-        )
-
-    return listOf(
-        linha("Desbalanceamento R40", indices.desbalR40, limites.desbalR40Atencao, limites.desbalR40Critico, "%"),
-        linha("Desbalanceamento L (1 kHz)", indices.desbalL1k, limites.desbalLAtencao, limites.desbalLCritico, "%"),
-        linha("Desbalanceamento Z (1 kHz)", indices.desbalZ1k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
-        linha("Desbalanceamento Z (10 kHz)", indices.desbalZ10k, limites.desbalZAtencao, limites.desbalZCritico, "%"),
-        linha("Delta θ (1 kHz)", indices.deltaTheta1k, limites.deltaThetaAtencao, limites.deltaThetaCritico, "°"),
-        linha("Spread I/F", indices.spreadIf, limites.spreadIfAtencao, limites.spreadIfCritico, "p.p."),
-        linha("Desbalanceamento C p/ terra", indices.desbalCapacitancia, limites.desbalCAtencao, limites.desbalCCritico, "%"),
-        linha("Espalhamento amplitude RIC", indices.ric?.espalhamentoPercentual, limites.ricAmplitudeAtencao, limites.ricAmplitudeCritico, "%"),
-        linha("Desvio senoidal RIC", indices.ric?.desvioSenoidalPercentual, limites.ricSenoideAtencao, limites.ricSenoideCritico, "%"),
-        linha("Isolação", indices.isolacaoMOhm, limites.isolacaoAtencaoMOhm, limites.isolacaoCriticoMOhm, "MΩ", acima = false),
-        linha("Índice de polarização", indices.pi, limites.piAtencao, limites.piCritico, "", acima = false),
     )
 }
 
