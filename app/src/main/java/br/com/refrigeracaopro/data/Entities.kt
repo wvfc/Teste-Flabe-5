@@ -288,6 +288,79 @@ data class InspecaoTermografica(
     val observacoes: String = "",
 )
 
+/**
+ * Motor de indução trifásico cadastrado para ensaio MCA.
+ *
+ * Entidade própria (o `Equipamento` não guarda polos, rpm, ligação nem tipo de
+ * acionamento), com vínculo **opcional** ao cliente e ao equipamento já
+ * cadastrados para o técnico não redigitar os dados.
+ */
+@Entity(
+    tableName = "motores",
+    indices = [Index(value = ["tag"], unique = true), Index("clienteId"), Index("equipamentoId")]
+)
+data class Motor(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val tag: String, // identificação no cliente, única
+    val clienteId: Long? = null,
+    val equipamentoId: Long? = null,
+    val cliente: String = "", // quando não vinculado a um cadastro
+    val setor: String = "",
+    val equipamentoAcionado: String = "",
+    val fabricante: String = "",
+    val modelo: String = "",
+    val numeroSerie: String = "",
+    val potenciaCV: Double? = null,
+    val tensaoNominalV: Double? = null,
+    val correnteNominalA: Double? = null,
+    val polos: Int? = null,
+    val rpmNominal: Int? = null,
+    val frequenciaHz: Double? = null,
+    val classeIsolamento: String = "", // B, F, H
+    val tipoLigacao: String = "", // Estrela, Triângulo
+    val acionamento: String = "", // Partida direta, Soft-starter, Inversor
+    val observacoes: String = "",
+    val criadoEm: Long = System.currentTimeMillis(),
+)
+
+/**
+ * Ensaio MCA de um motor. As grades de leitura (resistências, L/Z, alta
+ * frequência, capacitâncias e RIC) ficam em colunas de texto codificadas por
+ * [Mca] — são dezenas de valores que nunca são consultados individualmente.
+ */
+@Entity(tableName = "ensaios_mca", indices = [Index("motorId")])
+data class EnsaioMca(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val numero: String = "", // MCA-AAAA-NNNN
+    val motorId: Long,
+    val dataHora: Long = System.currentTimeMillis(),
+    val tecnico: String = "",
+    val temperaturaCarcacaC: Double? = null,
+    val umidadeRelativa: Double? = null,
+    /** Enquanto true, o ensaio é rascunho e pode ser retomado no wizard. */
+    val rascunho: Boolean = true,
+    val blocoAtual: Int = 0,
+    // Bloco 0 — checklist de segurança
+    val segDesligado: Boolean = false,
+    val segCabosDesconectados: Boolean = false,
+    val segCapacitorRemovido: Boolean = false,
+    val segAterrado: Boolean = false,
+    val segCalibracao: Boolean = false,
+    val segAquecimento: Boolean = false,
+    // Blocos 1 a 5 — grades codificadas
+    val resistencias: String = "",
+    val indutancias: String = "",
+    val altaFrequencia: String = "",
+    val capacitancias: String = "",
+    val ric: String = "",
+    // Bloco 6 — isolação (digitada a partir de megôhmetro externo)
+    val isolacaoMOhm: Double? = null,
+    val tensaoEnsaioV: Double? = null,
+    val leitura1min: Double? = null,
+    val leitura10min: Double? = null,
+    val observacoes: String = "",
+)
+
 /** Lançamento financeiro (gestão de receitas e despesas). */
 @Entity(tableName = "lancamentos")
 data class Lancamento(

@@ -16,8 +16,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         User::class, Cliente::class, Equipamento::class, Servico::class,
         OrdemServico::class, Relatorio::class, Agendamento::class, Lancamento::class,
         Projeto::class, EnsaioIsolacao::class, InspecaoTermografica::class,
+        Motor::class, EnsaioMca::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +33,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun projetoDao(): ProjetoDao
     abstract fun ensaioIsolacaoDao(): EnsaioIsolacaoDao
     abstract fun inspecaoTermograficaDao(): InspecaoTermograficaDao
+    abstract fun motorDao(): MotorDao
+    abstract fun ensaioMcaDao(): EnsaioMcaDao
 
     companion object {
         const val NOME_BANCO = "refrigeracao_pro.db"
@@ -138,6 +141,41 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Migração 8→9: cadastro de motores e ensaios MCA. */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS motores (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, tag TEXT NOT NULL, " +
+                        "clienteId INTEGER, equipamentoId INTEGER, cliente TEXT NOT NULL, " +
+                        "setor TEXT NOT NULL, equipamentoAcionado TEXT NOT NULL, " +
+                        "fabricante TEXT NOT NULL, modelo TEXT NOT NULL, numeroSerie TEXT NOT NULL, " +
+                        "potenciaCV REAL, tensaoNominalV REAL, correnteNominalA REAL, " +
+                        "polos INTEGER, rpmNominal INTEGER, frequenciaHz REAL, " +
+                        "classeIsolamento TEXT NOT NULL, tipoLigacao TEXT NOT NULL, " +
+                        "acionamento TEXT NOT NULL, observacoes TEXT NOT NULL, criadoEm INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_motores_tag ON motores (tag)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_motores_clienteId ON motores (clienteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_motores_equipamentoId ON motores (equipamentoId)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ensaios_mca (" +
+                        "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, numero TEXT NOT NULL, " +
+                        "motorId INTEGER NOT NULL, dataHora INTEGER NOT NULL, tecnico TEXT NOT NULL, " +
+                        "temperaturaCarcacaC REAL, umidadeRelativa REAL, " +
+                        "rascunho INTEGER NOT NULL, blocoAtual INTEGER NOT NULL, " +
+                        "segDesligado INTEGER NOT NULL, segCabosDesconectados INTEGER NOT NULL, " +
+                        "segCapacitorRemovido INTEGER NOT NULL, segAterrado INTEGER NOT NULL, " +
+                        "segCalibracao INTEGER NOT NULL, segAquecimento INTEGER NOT NULL, " +
+                        "resistencias TEXT NOT NULL, indutancias TEXT NOT NULL, " +
+                        "altaFrequencia TEXT NOT NULL, capacitancias TEXT NOT NULL, ric TEXT NOT NULL, " +
+                        "isolacaoMOhm REAL, tensaoEnsaioV REAL, leitura1min REAL, leitura10min REAL, " +
+                        "observacoes TEXT NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_ensaios_mca_motorId ON ensaios_mca (motorId)")
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: Room.databaseBuilder(
@@ -146,7 +184,7 @@ abstract class AppDatabase : RoomDatabase() {
                     NOME_BANCO
                 ).addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
-                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+                    MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
                 )
                     .build().also { instancia = it }
             }

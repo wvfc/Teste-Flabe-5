@@ -305,3 +305,74 @@ interface InspecaoTermograficaDao {
     @Delete
     suspend fun excluir(inspecao: InspecaoTermografica)
 }
+
+@Dao
+interface MotorDao {
+    @Query("SELECT * FROM motores ORDER BY tag COLLATE NOCASE")
+    fun listar(): Flow<List<Motor>>
+
+    @Query(
+        "SELECT * FROM motores WHERE tag LIKE '%' || :busca || '%' " +
+            "OR cliente LIKE '%' || :busca || '%' OR setor LIKE '%' || :busca || '%' " +
+            "OR equipamentoAcionado LIKE '%' || :busca || '%' ORDER BY tag COLLATE NOCASE"
+    )
+    fun pesquisar(busca: String): Flow<List<Motor>>
+
+    @Query("SELECT * FROM motores WHERE id = :id")
+    suspend fun buscar(id: Long): Motor?
+
+    /** Confere a unicidade da tag antes de gravar (índice único no banco). */
+    @Query("SELECT * FROM motores WHERE tag = :tag AND id != :ignorarId LIMIT 1")
+    suspend fun buscarPorTag(tag: String, ignorarId: Long = 0): Motor?
+
+    @Insert
+    suspend fun inserir(motor: Motor): Long
+
+    @Update
+    suspend fun atualizar(motor: Motor)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(motor: Motor): Long =
+        if (motor.id == 0L) inserir(motor) else { atualizar(motor); motor.id }
+
+    @Delete
+    suspend fun excluir(motor: Motor)
+}
+
+@Dao
+interface EnsaioMcaDao {
+    @Query("SELECT * FROM ensaios_mca ORDER BY dataHora DESC")
+    fun listar(): Flow<List<EnsaioMca>>
+
+    @Query("SELECT * FROM ensaios_mca WHERE motorId = :motorId ORDER BY dataHora DESC")
+    fun listarPorMotor(motorId: Long): Flow<List<EnsaioMca>>
+
+    /** Ensaios concluídos do motor, do mais antigo ao mais novo (tendência). */
+    @Query("SELECT * FROM ensaios_mca WHERE motorId = :motorId AND rascunho = 0 ORDER BY dataHora")
+    suspend fun concluidosDoMotor(motorId: Long): List<EnsaioMca>
+
+    /** Rascunho pendente do motor, para retomar o wizard. */
+    @Query("SELECT * FROM ensaios_mca WHERE motorId = :motorId AND rascunho = 1 ORDER BY dataHora DESC LIMIT 1")
+    suspend fun rascunhoDoMotor(motorId: Long): EnsaioMca?
+
+    @Query("SELECT * FROM ensaios_mca WHERE id = :id")
+    suspend fun buscar(id: Long): EnsaioMca?
+
+    @Query("SELECT COUNT(*) FROM ensaios_mca")
+    suspend fun contar(): Int
+
+    @Insert
+    suspend fun inserir(ensaio: EnsaioMca): Long
+
+    @Update
+    suspend fun atualizar(ensaio: EnsaioMca)
+
+    /** Insere ou atualiza sem apagar a linha (evita disparar CASCADE). */
+    @Transaction
+    suspend fun salvar(ensaio: EnsaioMca): Long =
+        if (ensaio.id == 0L) inserir(ensaio) else { atualizar(ensaio); ensaio.id }
+
+    @Delete
+    suspend fun excluir(ensaio: EnsaioMca)
+}

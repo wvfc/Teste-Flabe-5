@@ -7,8 +7,12 @@ import br.com.refrigeracaopro.data.Agendamento
 import br.com.refrigeracaopro.data.AppDatabase
 import br.com.refrigeracaopro.data.Cliente
 import br.com.refrigeracaopro.data.EnsaioIsolacao
+import br.com.refrigeracaopro.data.EnsaioMca
 import br.com.refrigeracaopro.data.Equipamento
 import br.com.refrigeracaopro.data.InspecaoTermografica
+import br.com.refrigeracaopro.data.Mca
+import br.com.refrigeracaopro.data.McaLimites
+import br.com.refrigeracaopro.data.Motor
 import br.com.refrigeracaopro.data.OrdemServico
 import br.com.refrigeracaopro.data.Relatorio
 import br.com.refrigeracaopro.data.Servico
@@ -405,6 +409,119 @@ class TermografiaViewModel(app: Application) : AndroidViewModel(app) {
     fun excluir(inspecao: InspecaoTermografica) {
         viewModelScope.launch { dao.excluir(inspecao) }
     }
+}
+
+// ---------- MCA (Motor Circuit Analysis) ----------
+class McaViewModel(app: Application) : AndroidViewModel(app) {
+    private val motores = db().motorDao()
+    private val ensaios = db().ensaioMcaDao()
+
+    val busca = MutableStateFlow("")
+
+    val lista: StateFlow<List<Motor>> = busca
+        .flatMapLatest { b -> if (b.isBlank()) motores.listar() else motores.pesquisar(b) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val clientes: StateFlow<List<Cliente>> =
+        db().clienteDao().listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val equipamentos: StateFlow<List<Equipamento>> =
+        db().equipamentoDao().listar().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val limites: StateFlow<Mca.LimitesMca> =
+        MutableStateFlow(McaLimites.carregar(app))
+
+    fun recarregarLimites() {
+        (limites as MutableStateFlow).value = McaLimites.carregar(getApplication())
+    }
+
+    fun salvarLimites(novos: Mca.LimitesMca) {
+        McaLimites.salvar(getApplication(), novos)
+        (limites as MutableStateFlow).value = novos
+    }
+
+    fun restaurarLimites() {
+        McaLimites.restaurarPadrao(getApplication())
+        recarregarLimites()
+    }
+
+    // ----- Motores -----
+    suspend fun buscarMotor(id: Long): Motor? = motores.buscar(id)
+
+    /** Salva o motor recusando tag repetida (índice único no banco). */
+    fun salvarMotor(motor: Motor, aoConcluir: (Long?) -> Unit = {}) {
+        viewModelScope.launch {
+            val conflito = motores.buscarPorTag(motor.tag.trim(), motor.id)
+            if (conflito != null) { aoConcluir(null); return@launch }
+            aoConcluir(motores.salvar(motor.copy(tag = motor.tag.trim())))
+        }
+    }
+
+    fun excluirMotor(motor: Motor) {
+        viewModelScope.launch { motores.excluir(motor) }
+    }
+
+    // ----- Ensaios -----
+    fun ensaiosDoMotor(motorId: Long) = ensaios.listarPorMotor(motorId)
+
+    suspend fun buscarEnsaio(id: Long): EnsaioMca? = ensaios.buscar(id)
+
+    suspend fun rascunhoDoMotor(motorId: Long): EnsaioMca? = ensaios.rascunhoDoMotor(motorId)
+
+    /** Número automático no formato MCA-AAAA-NNNN. */
+    suspend fun proximoNumero(): String {
+        val ano = SimpleDateFormat("yyyy", Locale.getDefault()).format(Date())
+        return "MCA-$ano-%04d".format(ensaios.contar() + 1)
+    }
+
+    /** Grava o ensaio (usado também no salvamento automático do rascunho). */
+    fun salvarEnsaio(ensaio: EnsaioMca, aoConcluir: (EnsaioMca) -> Unit = {}) {
+        viewModelScope.launch {
+            val comNumero = if (ensaio.numero.isBlank()) ensaio.copy(numero = proximoNumero()) else ensaio
+            val id = ensaios.salvar(comNumero)
+            aoConcluir(comNumero.copy(id = id))
+        }
+    }
+
+    fun excluirEnsaio(ensaio: EnsaioMca) {
+        viewModelScope.launch { ensaios.excluir(ensaio) }
+    }
+
+    /** Converte o registro do banco nas leituras tipadas do motor de cálculo. */
+    fun leiturasDe(ensaio: EnsaioMca): Mca.Leituras {
+        val (cem, mil) = Mca.decodificarLZ(ensaio.indutancias)
+        return Mca.Leituras(
+            temperaturaCarcacaC = ensaio.temperaturaCarcacaC,
+            resistencias = Mca.decodificarResistencias(ensaio.resistencias),
+            lz100Hz = cem,
+            lz1kHz = mil,
+            altaFrequencia = Mca.decodificarAltaFrequencia(ensaio.altaFrequencia),
+            capacitanciasNf = Mca.decodificarCapacitancias(ensaio.capacitancias),
+            ric = Mca.decodificarRic(ensaio.ric),
+            isolacaoMOhm = ensaio.isolacaoMOhm,
+            tensaoEnsaioV = ensaio.tensaoEnsaioV,
+            leitura1min = ensaio.leitura1min,
+            leitura10min = ensaio.leitura10min,
+        )
+    }
+
+    /**
+     * Baseline do motor: índices do primeiro ensaio concluído anterior a este,
+     * usado nas regras de diagnóstico que dependem do histórico.
+     */
+    suspend fun baselineDe(ensaio: EnsaioMca): Mca.Baseline? {
+        val anteriores = ensaios.concluidosDoMotor(ensaio.motorId)
+            .filter { it.id != ensaio.id && it.dataHora < ensaio.dataHora }
+        val primeiro = anteriores.firstOrNull() ?: return null
+        val indices = Mca.calcularIndices(leiturasDe(primeiro))
+        return Mca.Baseline(
+            ifPorPar = indices.ifPorPar,
+            capacitanciaMediaNf = indices.capacitanciaMediaNf,
+        )
+    }
+
+    /** Ensaios concluídos do motor, do mais antigo ao mais novo. */
+    suspend fun concluidosDoMotor(motorId: Long): List<EnsaioMca> = ensaios.concluidosDoMotor(motorId)
 }
 
 // ---------- Gestão financeira ----------
