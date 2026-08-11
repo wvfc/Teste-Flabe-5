@@ -208,8 +208,11 @@ fun McaEnsaioScreen(nav: NavController, motorId: Long, ensaioId: Long, vm: McaVi
                     Button(
                         onClick = {
                             vm.salvarEnsaio(montar(concluir = true)) { salvo ->
+                                // Sai do wizard e abre o parecer. O popUpTo usa o
+                                // padrão da rota (não a rota com argumentos
+                                // preenchidos, que nem sempre casa no grafo).
                                 nav.navigate("mca/parecer?id=${salvo.id}") {
-                                    popUpTo("mca/ensaio?motorId=$motorId&id=$ensaioId") { inclusive = true }
+                                    popUpTo("mca/ensaio?motorId={motorId}&id={id}") { inclusive = true }
                                 }
                             }
                         },
